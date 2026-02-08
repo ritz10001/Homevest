@@ -235,16 +235,118 @@ Provide a comprehensive analysis following the framework. Return ONLY valid JSON
     console.log('📤 API: Sending prompt to Gemini...');
     const result = await model.generateContent(prompt);
     const response = result.response;
-    const text = response.text();
+    let text = response.text();
     console.log('📥 API: Received response from Gemini');
+    console.log('Response length:', text.length);
     
     // Clean up the response (remove markdown code blocks if present)
-    const cleanedText = text.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
+    let cleanedText = text.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
     
-    const analysis = JSON.parse(cleanedText);
-    console.log('✅ API: Parsed analysis successfully');
+    // Check if JSON is incomplete (doesn't end with })
+    if (!cleanedText.endsWith('}')) {
+      console.log('⚠️ API: JSON appears incomplete, attempting to complete it...');
+      
+      // Try to close any open objects/arrays
+      let openBraces = 0;
+      let openBrackets = 0;
+      let inString = false;
+      let escapeNext = false;
+      
+      for (let i = 0; i < cleanedText.length; i++) {
+        const char = cleanedText[i];
+        
+        if (escapeNext) {
+          escapeNext = false;
+          continue;
+        }
+        
+        if (char === '\\') {
+          escapeNext = true;
+          continue;
+        }
+        
+        if (char === '"' && !escapeNext) {
+          inString = !inString;
+          continue;
+        }
+        
+        if (!inString) {
+          if (char === '{') openBraces++;
+          if (char === '}') openBraces--;
+          if (char === '[') openBrackets++;
+          if (char === ']') openBrackets--;
+        }
+      }
+      
+      console.log('Open braces:', openBraces, 'Open brackets:', openBrackets);
+      
+      // Close any open strings
+      if (inString) {
+        cleanedText += '"';
+      }
+      
+      // Remove any trailing commas before closing
+      cleanedText = cleanedText.replace(/,\s*$/, '');
+      
+      // Close open brackets and braces
+      for (let i = 0; i < openBrackets; i++) {
+        cleanedText += ']';
+      }
+      for (let i = 0; i < openBraces; i++) {
+        cleanedText += '}';
+      }
+      
+      console.log('Completed JSON, new length:', cleanedText.length);
+    }
     
-    return NextResponse.json(analysis);
+    // Try to fix common JSON issues
+    try {
+      // First attempt: parse as-is
+      const analysis = JSON.parse(cleanedText);
+      console.log('✅ API: Parsed analysis successfully');
+      return NextResponse.json(analysis);
+    } catch (parseError: any) {
+      console.log('⚠️ API: Initial parse failed, attempting to fix JSON...');
+      console.log('Parse error:', parseError.message);
+      
+      // Log the problematic area
+      const errorPosition = parseError.message.match(/position (\d+)/);
+      if (errorPosition) {
+        const pos = parseInt(errorPosition[1]);
+        const start = Math.max(0, pos - 100);
+        const end = Math.min(cleanedText.length, pos + 100);
+        console.log('Problematic area:', cleanedText.substring(start, end));
+      }
+      
+      // Try to fix common issues
+      // 1. Fix trailing commas
+      cleanedText = cleanedText.replace(/,(\s*[}\]])/g, '$1');
+      
+      // 2. Fix incomplete numbers (e.g., "2." should be "2.0")
+      cleanedText = cleanedText.replace(/: (\d+\.)(,|\s*}|\s*])/g, ': $10$2');
+      
+      // 3. Fix unterminated strings at the end
+      cleanedText = cleanedText.replace(/"([^"]*?)$/, '');
+      
+      // 4. Try to extract just the JSON object if there's extra text
+      const jsonMatch = cleanedText.match(/\{[\s\S]*\}/);
+      if (jsonMatch) {
+        cleanedText = jsonMatch[0];
+      }
+      
+      try {
+        const analysis = JSON.parse(cleanedText);
+        console.log('✅ API: Parsed analysis after fixes');
+        return NextResponse.json(analysis);
+      } catch (secondError: any) {
+        console.error('❌ API: Still failed to parse after fixes:', secondError.message);
+        console.log('Cleaned text length:', cleanedText.length);
+        console.log('First 500 chars:', cleanedText.substring(0, 500));
+        console.log('Last 500 chars:', cleanedText.substring(cleanedText.length - 500));
+        
+        throw new Error(`Failed to parse AI response: ${secondError.message}`);
+      }
+    }
   } catch (error: any) {
     console.error('❌ API: Error generating AI analysis:', error);
     return NextResponse.json(

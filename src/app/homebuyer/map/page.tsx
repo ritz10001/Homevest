@@ -1,17 +1,17 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { AnimatePresence, motion } from 'framer-motion';
-import { Search, GitCompare, X, Download, Loader2 } from 'lucide-react';
+import { useRouter } from 'next/navigation';
+import { AnimatePresence } from 'framer-motion';
+import { Search, GitCompare, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { PropertyCard } from '@/components/homebuyer/PropertyCard';
-import { useAuth } from '@/contexts/AuthContext';
-import { getUserProfile } from '@/lib/userProfile';
 import dynamic from 'next/dynamic';
+import { useAuth } from '@/contexts/AuthContext';
 
 // Dynamically import map to avoid SSR issues
 const DynamicPropertyMap = dynamic(
-  () => import('@/components/homebuyer/PropertyMapComparison').then((mod) => mod.PropertyMap),
+  () => import('@/components/homebuyer/PropertyMap').then((mod) => mod.PropertyMap),
   { ssr: false }
 );
 
@@ -30,17 +30,22 @@ interface Property {
 }
 
 export default function HomebuyerMapDashboard() {
+  const router = useRouter();
   const { user } = useAuth();
   const [properties, setProperties] = useState<Property[]>([]);
+  const [allProperties, setAllProperties] = useState<Property[]>([]); // Store all properties
   const [selectedProperty, setSelectedProperty] = useState<Property | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
   
   // Comparison mode state
-  const [comparisonMode, setComparisonMode] = useState(false);
-  const [selectedForComparison, setSelectedForComparison] = useState<string[]>([]);
-  const [comparisonAnalysis, setComparisonAnalysis] = useState<any>(null);
-  const [isAnalyzing, setIsAnalyzing] = useState(false);
-  const [showComparisonPanel, setShowComparisonPanel] = useState(false);
+  const [compareMode, setCompareMode] = useState(false);
+  const [selectedForCompare, setSelectedForCompare] = useState<Property[]>([]);
+  const [isLoadingComparison, setIsLoadingComparison] = useState(false);
+  
+  // Filter state
+  const [showFilters, setShowFilters] = useState(false);
+  const [priceRange, setPriceRange] = useState({ min: 0, max: 2000000 });
+  const [maxPrice, setMaxPrice] = useState(2000000);
 
   useEffect(() => {
     // Load Houston properties from the data folder
@@ -61,186 +66,250 @@ export default function HomebuyerMapDashboard() {
           imgSrc: prop.imgSrc,
           carouselPhotos: prop.carouselPhotos || [],
         }));
+        
+        // Store all properties
+        setAllProperties(transformedProperties);
+        
+        // Calculate price range
+        const prices = transformedProperties.map((p: Property) => p.price);
+        const minPrice = Math.min(...prices);
+        const maxPriceValue = Math.max(...prices);
+        
+        setPriceRange({ min: minPrice, max: maxPriceValue });
+        setMaxPrice(maxPriceValue);
+        
+        // Initially show all properties
         setProperties(transformedProperties);
       })
       .catch((err) => console.error('Failed to load properties:', err));
   }, []);
+  
+  // Filter properties when max price changes
+  useEffect(() => {
+    const filtered = allProperties.filter(prop => prop.price <= maxPrice);
+    setProperties(filtered);
+    console.log(`🔍 Filtered properties: ${filtered.length}/${allProperties.length} (max price: $${maxPrice.toLocaleString()})`);
+  }, [maxPrice, allProperties]);
 
   const handlePropertySelect = (property: Property) => {
-    setSelectedProperty(property);
+    if (compareMode) {
+      // In compare mode, toggle selection
+      const isAlreadySelected = selectedForCompare.some(p => p.id === property.id);
+      
+      if (isAlreadySelected) {
+        // Deselect
+        setSelectedForCompare(prev => prev.filter(p => p.id !== property.id));
+      } else {
+        // Select (max 3 properties)
+        if (selectedForCompare.length < 3) {
+          setSelectedForCompare(prev => [...prev, property]);
+        } else {
+          alert('You can compare up to 3 properties at a time');
+        }
+      }
+    } else {
+      // Normal mode - show property card
+      setSelectedProperty(property);
+    }
   };
 
   const handleCloseCard = () => {
     setSelectedProperty(null);
   };
 
-  const toggleComparisonMode = () => {
-    setComparisonMode(!comparisonMode);
-    if (comparisonMode) {
-      // Exiting comparison mode - reset
-      setSelectedForComparison([]);
-      setComparisonAnalysis(null);
-      setShowComparisonPanel(false);
+  const toggleCompareMode = () => {
+    setCompareMode(!compareMode);
+    if (compareMode) {
+      // Turning off compare mode - clear selections
+      setSelectedForCompare([]);
     }
   };
 
-  const handlePropertyComparisonSelect = (zpid: string) => {
-    if (!comparisonMode) return;
-    
-    setSelectedForComparison(prev => {
-      if (prev.includes(zpid)) {
-        // Deselect
-        return prev.filter(id => id !== zpid);
-      } else if (prev.length < 3) {
-        // Select (max 3)
-        return [...prev, zpid];
-      }
-      return prev;
-    });
+  const removeFromCompare = (propertyId: number) => {
+    setSelectedForCompare(prev => prev.filter(p => p.id !== propertyId));
   };
 
-  const runComparison = async () => {
-    if (selectedForComparison.length < 2 || !user) return;
-    
-    setIsAnalyzing(true);
-    setShowComparisonPanel(true);
-    
+  const handleCompare = async () => {
+    if (selectedForCompare.length < 2) {
+      alert('Please select at least 2 properties to compare');
+      return;
+    }
+
+    if (!user) {
+      alert('Please sign in to use the comparison feature');
+      return;
+    }
+
+    setIsLoadingComparison(true);
+
     try {
-      // Get user profile
+      console.log('🔍 Step 1: Loading user data from Firebase...');
+      
+      // Step 1: Get user profile from Firestore (client-side)
+      const { getUserProfile } = await import('@/lib/userProfile');
       const userProfile = await getUserProfile(user.uid);
+      
       if (!userProfile) {
-        throw new Error('User profile not found');
+        throw new Error('User profile not found. Please complete onboarding.');
       }
       
-      // Get full property data and AI insights for selected properties
-      const selectedPropertiesData = await Promise.all(
-        selectedForComparison.map(async (zpid) => {
-          const property = properties.find(p => p.zpid === zpid);
-          if (!property) return null;
-          
-          // Fetch AI insights for this property
-          const propertyData = {
-            zpid: property.zpid,
-            price: property.price,
-            address: property.address,
-            addressCity: '', // You may need to parse this
-            addressState: '',
-            addressZipcode: '',
-            beds: property.bedrooms,
-            baths: property.bathrooms,
-            area: property.sqft,
-          };
-          
-          const userData = {
-            displayName: userProfile.displayName,
-            annualIncome: userProfile.annualIncome,
-            monthlyDebt: userProfile.monthlyDebt,
-            availableSavings: userProfile.availableSavings,
-            maxMonthlyBudget: userProfile.maxMonthlyBudget,
-            downPayment: userProfile.downPayment,
-            interestRate: userProfile.interestRate,
-            loanTerm: userProfile.loanTerm,
-            includePMI: userProfile.includePMI,
-            creditScore: userProfile.creditScore,
-            riskComfort: userProfile.riskComfort,
-            timeHorizon: userProfile.timeHorizon,
-          };
-          
-          // Get AI insights
-          const aiResponse = await fetch('/api/analyze-property', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ propertyData, userData }),
-          });
-          
-          const aiInsights = aiResponse.ok ? await aiResponse.json() : null;
-          
-          return {
-            propertyData,
-            aiInsights,
-          };
-        })
-      );
+      console.log('✅ User data loaded:', userProfile);
+
+      // Prepare user data for comparison
+      const userData = {
+        uid: user.uid,
+        displayName: userProfile.displayName,
+        email: user.email || '',
+        annualIncome: userProfile.annualIncome,
+        monthlyDebt: userProfile.monthlyDebt,
+        availableSavings: userProfile.availableSavings,
+        maxMonthlyBudget: userProfile.maxMonthlyBudget,
+        downPayment: userProfile.downPayment,
+        interestRate: userProfile.interestRate,
+        loanTerm: userProfile.loanTerm,
+        includePMI: userProfile.includePMI,
+        creditScore: userProfile.creditScore,
+        riskComfort: userProfile.riskComfort,
+        timeHorizon: userProfile.timeHorizon,
+      };
+
+      console.log('🏠 Step 2: Processing properties and generating AI insights...');
       
-      const validProperties = selectedPropertiesData.filter(p => p !== null);
+      // Step 2 & 3: For each property, load data and generate AI insights
+      const comparisonProperties = [];
       
-      // Call comparison API
-      const comparisonResponse = await fetch('/api/compare-properties', {
+      for (let i = 0; i < selectedForCompare.length; i++) {
+        const property = selectedForCompare[i];
+        console.log(`\n📊 Processing Property ${i + 1}/${selectedForCompare.length}: ${property.address}`);
+        
+        // Load full property data from the original JSON
+        const propertyResponse = await fetch('/data/houston_housing_market_2024_100.json');
+        const allProperties = await propertyResponse.json();
+        const fullPropertyData = allProperties.find((p: any) => 
+          p.zpid === property.zpid || p.id === property.id.toString()
+        );
+        
+        if (!fullPropertyData) {
+          console.error(`❌ Property ${property.id} not found in data`);
+          continue;
+        }
+        
+        console.log(`✅ Property data loaded for: ${property.address}`);
+        
+        // Prepare property data for AI analysis
+        const propertyDataForAI = {
+          zpid: fullPropertyData.zpid || fullPropertyData.id,
+          price: fullPropertyData.unformattedPrice || fullPropertyData.price,
+          address: fullPropertyData.address,
+          addressCity: fullPropertyData.addressCity,
+          addressState: fullPropertyData.addressState,
+          addressZipcode: fullPropertyData.addressZipcode,
+          beds: fullPropertyData.beds,
+          baths: fullPropertyData.baths,
+          area: fullPropertyData.area,
+          homeType: fullPropertyData.hdpData?.homeInfo?.homeType || 'SINGLE_FAMILY',
+          daysOnZillow: fullPropertyData.hdpData?.homeInfo?.daysOnZillow,
+          zestimate: fullPropertyData.zestimate,
+          rentZestimate: fullPropertyData.rentZestimate,
+          taxAssessedValue: fullPropertyData.hdpData?.homeInfo?.taxAssessedValue,
+          lotAreaValue: fullPropertyData.hdpData?.homeInfo?.lotAreaValue,
+          lotAreaUnit: fullPropertyData.hdpData?.homeInfo?.lotAreaUnit,
+          brokerName: fullPropertyData.brokerName,
+        };
+        
+        const userDataForAI = {
+          displayName: userProfile.displayName,
+          annualIncome: userProfile.annualIncome,
+          monthlyDebt: userProfile.monthlyDebt,
+          availableSavings: userProfile.availableSavings,
+          maxMonthlyBudget: userProfile.maxMonthlyBudget,
+          downPayment: userProfile.downPayment,
+          interestRate: userProfile.interestRate,
+          loanTerm: userProfile.loanTerm,
+          includePMI: userProfile.includePMI,
+          creditScore: userProfile.creditScore,
+          riskComfort: userProfile.riskComfort,
+          timeHorizon: userProfile.timeHorizon,
+        };
+        
+        console.log(`🤖 Generating AI insights for Property ${i + 1}...`);
+        
+        // Step 3: Generate AI insights using existing algorithm
+        const aiResponse = await fetch('/api/analyze-property', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ 
+            propertyData: propertyDataForAI, 
+            userData: userDataForAI 
+          }),
+        });
+
+        if (!aiResponse.ok) {
+          const errorData = await aiResponse.json();
+          console.error(`❌ AI analysis failed for property ${property.id}:`, errorData);
+          throw new Error(`Failed to generate AI insights for property ${property.address}`);
+        }
+
+        const aiInsights = await aiResponse.json();
+        console.log(`✅ AI insights generated for Property ${i + 1}`);
+
+        // Combine all data for this property
+        comparisonProperties.push({
+          propertyData: {
+            zpid: fullPropertyData.zpid || fullPropertyData.id,
+            address: fullPropertyData.address,
+            addressCity: fullPropertyData.addressCity,
+            addressState: fullPropertyData.addressState,
+            addressZipcode: fullPropertyData.addressZipcode,
+            price: fullPropertyData.unformattedPrice || fullPropertyData.price,
+            bedrooms: fullPropertyData.beds,
+            bathrooms: fullPropertyData.baths,
+            sqft: fullPropertyData.area,
+            lat: fullPropertyData.latLong.latitude,
+            lng: fullPropertyData.latLong.longitude,
+            homeType: fullPropertyData.hdpData?.homeInfo?.homeType,
+            daysOnZillow: fullPropertyData.hdpData?.homeInfo?.daysOnZillow,
+            zestimate: fullPropertyData.zestimate,
+            rentZestimate: fullPropertyData.rentZestimate,
+            taxAssessedValue: fullPropertyData.hdpData?.homeInfo?.taxAssessedValue,
+            lotAreaValue: fullPropertyData.hdpData?.homeInfo?.lotAreaValue,
+            lotAreaUnit: fullPropertyData.hdpData?.homeInfo?.lotAreaUnit,
+            brokerName: fullPropertyData.brokerName,
+            imgSrc: fullPropertyData.imgSrc,
+            carouselPhotos: fullPropertyData.carouselPhotos,
+          },
+          aiInsights: aiInsights,
+        });
+      }
+
+      console.log('💾 Step 4: Saving comparison data...');
+      
+      // Step 4: Save all data to comparison_data.json
+      const comparisonData = {
+        userData: userData,
+        properties: comparisonProperties,
+      };
+      
+      const saveResponse = await fetch('/api/save-comparison-data', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          userData: {
-            displayName: userProfile.displayName,
-            annualIncome: userProfile.annualIncome,
-            monthlyDebt: userProfile.monthlyDebt,
-            availableSavings: userProfile.availableSavings,
-            maxMonthlyBudget: userProfile.maxMonthlyBudget,
-            downPayment: userProfile.downPayment,
-            interestRate: userProfile.interestRate,
-            creditScore: userProfile.creditScore,
-            riskComfort: userProfile.riskComfort,
-            timeHorizon: userProfile.timeHorizon,
-          },
-          properties: validProperties,
-        }),
+        body: JSON.stringify(comparisonData),
       });
-      
-      if (!comparisonResponse.ok) {
-        throw new Error('Failed to generate comparison');
+
+      if (saveResponse.ok) {
+        console.log('✅ Comparison data saved successfully!');
+        // Navigate to comparison view
+        router.push('/homebuyer/compare');
+      } else {
+        throw new Error('Failed to save comparison data');
       }
-      
-      const analysis = await comparisonResponse.json();
-      setComparisonAnalysis(analysis);
-    } catch (error) {
-      console.error('Comparison error:', error);
-      alert('Failed to generate comparison. Please try again.');
+    } catch (error: any) {
+      console.error('❌ Error creating comparison:', error);
+      alert(`Failed to create comparison: ${error.message}`);
     } finally {
-      setIsAnalyzing(false);
+      setIsLoadingComparison(false);
     }
   };
-
-  const downloadReport = () => {
-    if (!comparisonAnalysis) return;
-    
-    const reportData = {
-      generatedAt: new Date().toISOString(),
-      user: user?.displayName || 'User',
-      properties: selectedForComparison.map(zpid => {
-        const prop = properties.find(p => p.zpid === zpid);
-        return {
-          zpid,
-          address: prop?.address,
-          price: prop?.price,
-        };
-      }),
-      analysis: comparisonAnalysis,
-    };
-    
-    const blob = new Blob([JSON.stringify(reportData, null, 2)], { type: 'application/json' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `property-comparison-${new Date().toISOString().split('T')[0]}.json`;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    URL.revokeObjectURL(url);
-  };
-
-  // Filter properties for comparison mode
-  const displayedProperties = comparisonMode && selectedForComparison.length > 0
-    ? properties.filter(p => selectedForComparison.includes(p.zpid || ''))
-    : properties;
-
-  // Calculate center point for selected properties
-  const mapCenter = comparisonMode && selectedForComparison.length > 0
-    ? (() => {
-        const selected = properties.filter(p => selectedForComparison.includes(p.zpid || ''));
-        const avgLat = selected.reduce((sum, p) => sum + p.lat, 0) / selected.length;
-        const avgLng = selected.reduce((sum, p) => sum + p.lng, 0) / selected.length;
-        return { lat: avgLat, lng: avgLng };
-      })()
-    : undefined;
 
   return (
     <div className="min-h-screen bg-white flex flex-col">
@@ -268,237 +337,189 @@ export default function HomebuyerMapDashboard() {
               Features
             </Button>
           </div>
-          
-          {/* Comparison Mode Toggle */}
-          <Button
-            variant={comparisonMode ? "default" : "outline"}
-            size="sm"
-            onClick={toggleComparisonMode}
-            className="gap-2"
-          >
-            <GitCompare className="w-4 h-4" />
-            {comparisonMode ? 'Exit Compare' : 'Compare'}
-          </Button>
         </div>
       </nav>
 
       {/* Map Container - Full Screen with Overlays */}
-      <div className="flex-1 relative flex">
-        {/* Map Section */}
-        <div className={`${showComparisonPanel ? 'w-1/2' : 'w-full'} relative transition-all duration-300`}>
-          <div className="absolute inset-0">
-            <DynamicPropertyMap
-              properties={displayedProperties}
-              onPropertySelect={comparisonMode ? (prop) => handlePropertyComparisonSelect(prop.zpid || '') : handlePropertySelect}
-              selectedProperty={selectedProperty}
-              center={mapCenter}
-              comparisonMode={comparisonMode}
-              selectedForComparison={selectedForComparison}
+      <div className="flex-1 relative">
+        <div className="absolute inset-0">
+          <DynamicPropertyMap
+            properties={properties}
+            onPropertySelect={handlePropertySelect}
+            selectedProperty={selectedProperty}
+            compareMode={compareMode}
+            selectedForCompare={selectedForCompare}
+          />
+        </div>
+
+        {/* Search Bar Overlay - Top Center */}
+        <div className="absolute top-6 left-1/2 -translate-x-1/2 z-20 flex items-center gap-3">
+          <div className="relative w-[400px]">
+            <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-neutral-400 pointer-events-none z-10" />
+            <input
+              type="text"
+              placeholder="Search by city, neighborhood, or ZIP code..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="w-full pl-11 pr-4 py-3 rounded-xl bg-white/95 backdrop-blur-sm border border-neutral-200 text-sm text-neutral-900 placeholder:text-neutral-400 focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary transition-all shadow-lg"
             />
           </div>
 
-          {/* Search Bar Overlay - Top Center */}
-          {!comparisonMode && (
-            <div className="absolute top-6 left-1/2 -translate-x-1/2 z-20">
-              <div className="relative w-[400px]">
-                <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-neutral-400 pointer-events-none z-10" />
-                <input
-                  type="text"
-                  placeholder="Search by city, neighborhood, or ZIP code..."
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  className="w-full pl-11 pr-4 py-3 rounded-xl bg-white/95 backdrop-blur-sm border border-neutral-200 text-sm text-neutral-900 placeholder:text-neutral-400 focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary transition-all shadow-lg"
-                />
-              </div>
-            </div>
-          )}
+          {/* Filter Button */}
+          <Button
+            onClick={() => setShowFilters(!showFilters)}
+            variant={showFilters ? "default" : "outline"}
+            className={`shadow-lg ${showFilters ? 'bg-primary text-white' : 'bg-white/95 backdrop-blur-sm'}`}
+          >
+            <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z" />
+            </svg>
+            Filters
+          </Button>
 
-          {/* Comparison Mode Instructions */}
-          {comparisonMode && selectedForComparison.length < 2 && (
-            <div className="absolute top-6 left-1/2 -translate-x-1/2 z-20 bg-white/95 backdrop-blur-sm px-6 py-3 rounded-xl shadow-lg border border-neutral-200">
-              <p className="text-sm text-neutral-700">
-                Select {selectedForComparison.length === 0 ? '2-3' : selectedForComparison.length === 1 ? '1-2 more' : '1 more'} properties to compare
-              </p>
-            </div>
-          )}
-
-          {/* Compare Button */}
-          {comparisonMode && selectedForComparison.length >= 2 && (
-            <div className="absolute bottom-6 left-1/2 -translate-x-1/2 z-20">
-              <Button
-                onClick={runComparison}
-                size="lg"
-                className="shadow-lg"
-                disabled={isAnalyzing}
-              >
-                {isAnalyzing ? (
-                  <>
-                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                    Analyzing...
-                  </>
-                ) : (
-                  <>
-                    <GitCompare className="w-4 h-4 mr-2" />
-                    Compare {selectedForComparison.length} Properties
-                  </>
-                )}
-              </Button>
-            </div>
-          )}
-
-          {/* Property Card Overlay - Bottom Center (Zillow-style) */}
-          <AnimatePresence>
-            {selectedProperty && !comparisonMode && (
-              <PropertyCard
-                property={selectedProperty}
-                onClose={handleCloseCard}
-              />
-            )}
-          </AnimatePresence>
+          {/* Compare Toggle Button */}
+          <Button
+            onClick={toggleCompareMode}
+            variant={compareMode ? "default" : "outline"}
+            className={`shadow-lg ${compareMode ? 'bg-primary text-white' : 'bg-white/95 backdrop-blur-sm'}`}
+          >
+            <GitCompare className="w-4 h-4 mr-2" />
+            {compareMode ? 'Comparing' : 'Compare'}
+          </Button>
         </div>
 
-        {/* Comparison Analysis Panel - Right Side */}
-        <AnimatePresence>
-          {showComparisonPanel && (
-            <motion.div
-              initial={{ x: '100%' }}
-              animate={{ x: 0 }}
-              exit={{ x: '100%' }}
-              transition={{ type: 'spring', damping: 30, stiffness: 300 }}
-              className="w-1/2 bg-white border-l border-neutral-200 overflow-y-auto"
-            >
-              <div className="p-6">
-                {/* Header */}
-                <div className="flex items-center justify-between mb-6">
-                  <h2 className="text-2xl font-bold text-neutral-900">Property Comparison</h2>
-                  <div className="flex items-center gap-2">
-                    {comparisonAnalysis && (
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={downloadReport}
-                        className="gap-2"
-                      >
-                        <Download className="w-4 h-4" />
-                        Download Report
-                      </Button>
-                    )}
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => setShowComparisonPanel(false)}
-                    >
-                      <X className="w-4 h-4" />
-                    </Button>
+        {/* Filter Panel */}
+        {showFilters && (
+          <div className="absolute top-24 left-1/2 -translate-x-1/2 z-20 w-[500px]">
+            <div className="bg-white/95 backdrop-blur-sm rounded-xl shadow-lg border border-neutral-200 p-6">
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="text-lg font-bold text-neutral-900">Price Filter</h3>
+                <button
+                  onClick={() => setShowFilters(false)}
+                  className="w-8 h-8 rounded-full hover:bg-neutral-100 flex items-center justify-center transition-colors"
+                >
+                  <X className="w-4 h-4 text-neutral-600" />
+                </button>
+              </div>
+              
+              <div className="space-y-4">
+                <div className="flex items-center justify-between text-sm">
+                  <span className="text-neutral-600">Max Price:</span>
+                  <span className="text-xl font-bold text-primary">
+                    ${maxPrice.toLocaleString()}
+                  </span>
+                </div>
+                
+                <div className="relative">
+                  <input
+                    type="range"
+                    min={priceRange.min}
+                    max={priceRange.max}
+                    step={10000}
+                    value={maxPrice}
+                    onChange={(e) => setMaxPrice(parseInt(e.target.value))}
+                    className="w-full h-2 bg-neutral-200 rounded-lg appearance-none cursor-pointer slider"
+                    style={{
+                      background: `linear-gradient(to right, #3b82f6 0%, #3b82f6 ${((maxPrice - priceRange.min) / (priceRange.max - priceRange.min)) * 100}%, #e5e7eb ${((maxPrice - priceRange.min) / (priceRange.max - priceRange.min)) * 100}%, #e5e7eb 100%)`
+                    }}
+                  />
+                </div>
+                
+                <div className="flex items-center justify-between text-xs text-neutral-500">
+                  <span>${priceRange.min.toLocaleString()}</span>
+                  <span>${priceRange.max.toLocaleString()}</span>
+                </div>
+                
+                <div className="pt-4 border-t border-neutral-200">
+                  <div className="flex items-center justify-between text-sm">
+                    <span className="text-neutral-600">Showing:</span>
+                    <span className="font-semibold text-neutral-900">
+                      {properties.length} of {allProperties.length} properties
+                    </span>
                   </div>
                 </div>
-
-                {/* Loading State */}
-                {isAnalyzing && (
-                  <div className="flex flex-col items-center justify-center py-12">
-                    <Loader2 className="w-12 h-12 animate-spin text-primary mb-4" />
-                    <p className="text-neutral-600">Analyzing properties with AI...</p>
-                  </div>
-                )}
-
-                {/* Analysis Results */}
-                {comparisonAnalysis && !isAnalyzing && (
-                  <div className="space-y-6">
-                    {/* Recommendation */}
-                    <div className="p-6 bg-gradient-to-br from-green-50 to-emerald-50 rounded-xl border-2 border-green-200">
-                      <div className="flex items-start gap-3 mb-3">
-                        <div className="w-10 h-10 bg-green-600 rounded-full flex items-center justify-center shrink-0">
-                          <span className="text-white text-xl">🏆</span>
-                        </div>
-                        <div>
-                          <h3 className="text-lg font-bold text-neutral-900">Recommended Property</h3>
-                          <p className="text-sm text-neutral-600">
-                            {properties.find(p => p.zpid === comparisonAnalysis.recommendation.bestProperty)?.address}
-                          </p>
-                        </div>
-                      </div>
-                      <p className="text-neutral-700 leading-relaxed mb-3">
-                        {comparisonAnalysis.recommendation.reason}
-                      </p>
-                      <div className="inline-block px-3 py-1 bg-green-600 text-white rounded-full text-sm font-semibold">
-                        {comparisonAnalysis.recommendation.confidenceLevel} Confidence
-                      </div>
-                    </div>
-
-                    {/* Summary */}
-                    <div className="p-6 bg-neutral-50 rounded-xl border border-neutral-200">
-                      <h3 className="text-lg font-bold text-neutral-900 mb-3">Executive Summary</h3>
-                      <p className="text-neutral-700 leading-relaxed">
-                        {comparisonAnalysis.summary}
-                      </p>
-                    </div>
-
-                    {/* Property Breakdown */}
-                    <div>
-                      <h3 className="text-lg font-bold text-neutral-900 mb-4">Property Breakdown</h3>
-                      <div className="space-y-4">
-                        {comparisonAnalysis.propertyBreakdown.map((prop: any) => (
-                          <div key={prop.zpid} className="p-4 bg-white rounded-xl border border-neutral-200">
-                            <div className="flex items-center justify-between mb-3">
-                              <h4 className="font-semibold text-neutral-900">{prop.address}</h4>
-                              <div className="px-3 py-1 bg-primary/10 text-primary rounded-full text-sm font-bold">
-                                {prop.score}/100
-                              </div>
-                            </div>
-                            <div className="grid grid-cols-2 gap-4">
-                              <div>
-                                <p className="text-xs font-semibold text-green-600 mb-2">PROS</p>
-                                <ul className="space-y-1">
-                                  {prop.pros.map((pro: string, idx: number) => (
-                                    <li key={idx} className="text-sm text-neutral-700">✓ {pro}</li>
-                                  ))}
-                                </ul>
-                              </div>
-                              <div>
-                                <p className="text-xs font-semibold text-orange-600 mb-2">CONS</p>
-                                <ul className="space-y-1">
-                                  {prop.cons.map((con: string, idx: number) => (
-                                    <li key={idx} className="text-sm text-neutral-700">✗ {con}</li>
-                                  ))}
-                                </ul>
-                              </div>
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-
-                    {/* Key Factors */}
-                    <div className="p-6 bg-blue-50 rounded-xl border border-blue-200">
-                      <h3 className="text-lg font-bold text-neutral-900 mb-3">Key Decision Factors</h3>
-                      <ul className="space-y-2">
-                        {comparisonAnalysis.keyFactors.map((factor: string, idx: number) => (
-                          <li key={idx} className="text-sm text-neutral-700 flex items-start gap-2">
-                            <span className="text-blue-600 mt-0.5">•</span>
-                            <span>{factor}</span>
-                          </li>
-                        ))}
-                      </ul>
-                    </div>
-
-                    {/* Next Steps */}
-                    <div className="p-6 bg-purple-50 rounded-xl border border-purple-200">
-                      <h3 className="text-lg font-bold text-neutral-900 mb-3">Next Steps</h3>
-                      <ol className="space-y-2">
-                        {comparisonAnalysis.nextSteps.map((step: string, idx: number) => (
-                          <li key={idx} className="text-sm text-neutral-700 flex items-start gap-3">
-                            <span className="flex-shrink-0 w-6 h-6 bg-purple-600 text-white rounded-full flex items-center justify-center text-xs font-bold">
-                              {idx + 1}
-                            </span>
-                            <span className="pt-0.5">{step}</span>
-                          </li>
-                        ))}
-                      </ol>
-                    </div>
-                  </div>
-                )}
+                
+                <Button
+                  onClick={() => {
+                    setMaxPrice(priceRange.max);
+                    setShowFilters(false);
+                  }}
+                  variant="outline"
+                  className="w-full"
+                  size="sm"
+                >
+                  Reset Filter
+                </Button>
               </div>
-            </motion.div>
+            </div>
+          </div>
+        )}
+
+        {/* Compare Mode Banner */}
+        {compareMode && (
+          <div className="absolute top-24 left-1/2 -translate-x-1/2 z-20">
+            <div className="bg-blue-500 text-white px-6 py-3 rounded-xl shadow-lg flex items-center gap-3">
+              <span className="text-sm font-medium">
+                Select 2-3 properties to compare ({selectedForCompare.length}/3 selected)
+              </span>
+              {selectedForCompare.length >= 2 && (
+                <Button
+                  onClick={handleCompare}
+                  disabled={isLoadingComparison}
+                  size="sm"
+                  variant="secondary"
+                  className="bg-white text-blue-600 hover:bg-neutral-100"
+                >
+                  {isLoadingComparison ? 'Loading...' : 'Compare Now'}
+                </Button>
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* Selected Properties for Comparison */}
+        {compareMode && selectedForCompare.length > 0 && (
+          <div className="absolute bottom-6 left-6 z-20 flex gap-3">
+            {selectedForCompare.map((property) => (
+              <div
+                key={property.id}
+                className="bg-white/95 backdrop-blur-sm rounded-xl p-4 shadow-lg border-2 border-primary w-64"
+              >
+                <div className="flex items-start justify-between mb-2">
+                  <div className="flex-1">
+                    <p className="text-sm font-bold text-neutral-900">
+                      ${property.price.toLocaleString()}
+                    </p>
+                    <p className="text-xs text-neutral-600 line-clamp-1">
+                      {property.address}
+                    </p>
+                  </div>
+                  <button
+                    onClick={() => removeFromCompare(property.id)}
+                    className="w-6 h-6 rounded-full bg-red-100 hover:bg-red-200 flex items-center justify-center transition-colors"
+                  >
+                    <X className="w-4 h-4 text-red-600" />
+                  </button>
+                </div>
+                <div className="flex items-center gap-3 text-xs text-neutral-600">
+                  <span>{property.bedrooms} beds</span>
+                  <span>•</span>
+                  <span>{property.bathrooms} baths</span>
+                  <span>•</span>
+                  <span>{property.sqft.toLocaleString()} sqft</span>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+
+        {/* Property Card Overlay - Bottom Center (Zillow-style) */}
+        <AnimatePresence>
+          {selectedProperty && (
+            <PropertyCard
+              property={selectedProperty}
+              onClose={handleCloseCard}
+            />
           )}
         </AnimatePresence>
       </div>

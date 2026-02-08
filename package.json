@@ -13,7 +13,10 @@
   "dependencies": {
     "@ai-sdk/openai": "^3.0.26",
     "@google/generative-ai": "^0.24.1",
+    "@metaplex-foundation/js": "^0.20.1",
     "@radix-ui/react-slot": "^1.2.4",
+    "@solana/spl-token": "^0.4.14",
+    "@solana/web3.js": "^1.98.4",
     "ai": "^6.0.77",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
@@ -22,6 +25,7 @@
     "leaflet": "^1.9.4",
     "lucide-react": "^0.563.0",
     "next": "16.1.6",
+    "nft.storage": "^7.2.0",
     "node-fetch": "^2.7.0",
     "radix-ui": "^1.4.3",
     "react": "19.2.3",

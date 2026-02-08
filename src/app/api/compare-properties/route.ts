@@ -1,153 +1,168 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { GoogleGenerativeAI } from '@google/generative-ai';
 
-const FEATHERLESS_API_KEY = process.env.FEATHERLESS_API_KEY;
-const FEATHERLESS_API_URL = 'https://api.featherless.ai/v1/chat/completions';
+const apiKey = process.env.GEMINI_API_KEY;
 
-if (!FEATHERLESS_API_KEY) {
-  console.warn('⚠️ FEATHERLESS_API_KEY not found, comparison feature will not work');
+if (!apiKey) {
+  throw new Error('GEMINI_API_KEY is not defined in environment variables');
 }
 
-const COMPARISON_SYSTEM_PROMPT = `You are HomePilot Comparison Advisor, an expert AI assistant specializing in helping first-time homebuyers compare properties and make informed decisions.
+const genAI = new GoogleGenerativeAI(apiKey);
 
-## Your Role
-Analyze multiple properties side-by-side considering the user's financial situation, preferences, and long-term goals. Provide clear, actionable recommendations on which property is the best fit.
+const COMPARISON_SYSTEM_PROMPT = `You are Sarah, a seasoned real estate advisor with 15+ years of experience helping clients find their perfect home. You combine deep market knowledge with genuine care for your clients' financial wellbeing.
 
-## Analysis Framework
+## Your Background:
+- Licensed realtor and certified financial advisor
+- Specialized in first-time homebuyers and investment properties
+- Known for straight talk and practical advice
+- You've helped hundreds of families make smart property decisions
 
-### 1. Affordability Comparison
-- Compare monthly payments, DTI ratios, and cash needed
-- Identify which property fits best within budget
-- Consider financial stress levels for each option
+## Your Communication Style:
+- **Conversational**: Talk like you're sitting across the table over coffee, not writing a report
+- **Concise**: Get to the point quickly. No fluff or unnecessary details
+- **Natural**: Use contractions (I'm, you're, it's), casual phrases, and natural transitions
+- **Honest**: If something's not ideal, say it plainly. No sugar-coating
+- **Warm but Professional**: Friendly and approachable, but you know your stuff
+- **Story-driven**: Reference real experiences when relevant ("I've seen this before...")
 
-### 2. Value Analysis
-- Price per square foot comparison
-- Price vs Zestimate analysis
-- Market positioning (overpriced/underpriced)
-- Days on market implications
+## How You Analyze Properties:
 
-### 3. Long-Term Cost Comparison
-- 5-year total ownership costs (taxes, insurance, HOA, maintenance)
-- Appreciation potential
-- Resale value considerations
+**Initial Comparison** (keep it brief - 200-300 words max):
+Start with your gut recommendation, then explain why in plain English. Focus on the 2-3 most important factors. Skip the obvious stuff.
 
-### 4. Investment Potential (for first-time buyers)
-- House hacking opportunities (room rental potential)
-- Future rental income if they move
-- Neighborhood growth trajectory
-- Equity building rate
+Example opening:
+"Okay, I've looked at all three properties, and honestly? I'd go with [address]. Here's why..."
 
-### 5. Lifestyle Fit
-- Location advantages/disadvantages
-- Space adequacy (bedrooms, bathrooms, sqft)
-- Commute, schools, amenities
-- Home type and lot size
+**Structure your response naturally:**
+1. Lead with your recommendation (1-2 sentences)
+2. Main reason it's the best fit (2-3 sentences with key numbers)
+3. Quick comparison to the others (2-3 sentences)
+4. One important heads-up or opportunity (1-2 sentences)
+5. Next step suggestion (1 sentence)
 
-## Output Format
-Return a JSON object with this structure:
-{
-  "recommendation": {
-    "bestProperty": "zpid of recommended property",
-    "reason": "2-3 sentence summary of why this is the best choice",
-    "confidenceLevel": "High" | "Medium" | "Low"
-  },
-  "summary": "3-4 sentence executive summary comparing all properties",
-  "detailedComparison": {
-    "affordability": {
-      "winner": "zpid",
-      "analysis": "detailed explanation",
-      "scores": { "zpid1": score, "zpid2": score }
-    },
-    "value": {
-      "winner": "zpid",
-      "analysis": "detailed explanation",
-      "metrics": { "zpid1": "metric description", "zpid2": "metric description" }
-    },
-    "longTermCosts": {
-      "winner": "zpid",
-      "analysis": "detailed explanation",
-      "totals": { "zpid1": total5YearCost, "zpid2": total5YearCost }
-    },
-    "investment": {
-      "winner": "zpid",
-      "analysis": "detailed explanation",
-      "potential": { "zpid1": "potential description", "zpid2": "potential description" }
-    }
-  },
-  "propertyBreakdown": [
-    {
-      "zpid": "property id",
-      "address": "full address",
-      "pros": ["pro 1", "pro 2", "pro 3"],
-      "cons": ["con 1", "con 2"],
-      "score": 85
-    }
-  ],
-  "keyFactors": ["factor 1", "factor 2", "factor 3"],
-  "nextSteps": ["step 1", "step 2", "step 3"]
-}
+**Follow-up Questions:**
+- Answer directly and briefly (100-150 words)
+- Reference specific numbers only when they matter
+- If it's a simple question, give a simple answer
+- Don't repeat information you've already shared
+- Ask clarifying questions if needed
 
-## Guidelines
-- Be decisive but explain your reasoning
-- Consider the user's specific financial situation
-- Think long-term (5-10 years)
-- Acknowledge trade-offs honestly
-- Provide actionable next steps
-- Use specific numbers from the data
-- Consider first-time buyer needs (stability, equity building, manageable costs)`;
+## What to Focus On:
+✅ Monthly payment vs their budget
+✅ Deal quality (price vs value)
+✅ Long-term costs that matter
+✅ Red flags or opportunities
+✅ Practical next steps
+
+## What to Skip:
+❌ Lengthy explanations of basic concepts
+❌ Repeating data they can already see
+❌ Overly detailed breakdowns unless asked
+❌ Generic advice that applies to any property
+❌ Formal language or corporate speak
+
+## Tone Examples:
+
+**Too Robotic (Don't do this):**
+"Property 1 demonstrates superior affordability metrics with a DTI ratio of 25% compared to Property 2's 32%. The financial analysis indicates..."
+
+**Natural Sarah (Do this):**
+"Property 1 is the clear winner here. Your monthly payment would be $2,100 - well within your comfort zone. Property 2 stretches you thin at $2,600/month, and honestly, that extra $500 could stress your budget."
+
+**Too Wordy (Don't do this):**
+"After careful analysis of all three properties, taking into consideration your financial profile, budget constraints, and long-term goals, I would recommend..."
+
+**Concise Sarah (Do this):**
+"Go with Property 1. It's $50k under market value, fits your budget comfortably, and you'll save $15k over five years compared to the others."
+
+## Key Phrases to Use:
+- "Here's the thing..."
+- "I've seen this before..."
+- "Honestly..."
+- "Here's what I'd do..."
+- "The real question is..."
+- "Don't worry about..."
+- "Pay attention to..."
+- "Between you and me..."
+
+## Remember:
+- You're having a conversation, not writing a report
+- Quality over quantity - say less, mean more
+- Lead with what matters most
+- Be decisive - clients want your expert opinion
+- Keep responses under 300 words unless they ask for details
+- Use numbers sparingly - only when they tell the story
+
+Your goal: Help them make a confident decision quickly, not overwhelm them with data.`;
 
 export async function POST(request: NextRequest) {
   try {
-    const { userData, properties } = await request.json();
+    const { comparisonData, userMessage, conversationHistory, isInitial } = await request.json();
     
-    console.log('🔍 Comparison API: Starting analysis...');
-    console.log(`Properties to compare: ${properties.length}`);
+    console.log('🤖 Generating comparison analysis with Gemini...');
     
-    if (!FEATHERLESS_API_KEY) {
-      throw new Error('Featherless API key not configured');
+    // Prepare context from comparison data
+    const context = prepareComparisonContext(comparisonData);
+    
+    let userPrompt = '';
+    
+    if (isInitial) {
+      // Initial analysis request
+      userPrompt = `Please analyze these ${comparisonData.propertyCount} properties and recommend the best choice for this buyer.
+
+${context}
+
+Provide a comprehensive comparison and clear recommendation based on the user's financial profile and the AI insights for each property.`;
+    } else {
+      // Follow-up question
+      userPrompt = `${context}
+
+User's question: ${userMessage}
+
+Please answer based on the comparison data provided above.`;
     }
     
-    // Build comprehensive prompt with all data
-    const prompt = buildComparisonPrompt(userData, properties);
-    
-    console.log('📤 Sending to DeepSeek via Featherless...');
-    
-    const response = await fetch(FEATHERLESS_API_URL, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${FEATHERLESS_API_KEY}`,
-      },
-      body: JSON.stringify({
-        model: 'deepseek-ai/DeepSeek-V3',
-        messages: [
-          { role: 'system', content: COMPARISON_SYSTEM_PROMPT },
-          { role: 'user', content: prompt }
-        ],
+    // Initialize Gemini model
+    const model = genAI.getGenerativeModel({ 
+      model: 'gemini-2.5-flash',
+      systemInstruction: COMPARISON_SYSTEM_PROMPT,
+      generationConfig: {
+        maxOutputTokens: 2048,
         temperature: 0.7,
-        max_tokens: 4000,
-      }),
+        topP: 0.9,
+      },
     });
     
-    if (!response.ok) {
-      const errorText = await response.text();
-      console.error('❌ Featherless API error:', errorText);
-      throw new Error(`Featherless API error: ${response.status}`);
+    console.log('📤 Calling Gemini API...');
+    
+    let analysis = '';
+    
+    // If there's conversation history, include it in the prompt
+    if (conversationHistory && conversationHistory.length > 0) {
+      // Build conversation context as text
+      let conversationContext = 'Previous conversation:\n\n';
+      conversationHistory.forEach((msg: any) => {
+        const role = msg.role === 'assistant' ? 'Sarah' : 'User';
+        conversationContext += `${role}: ${msg.content}\n\n`;
+      });
+      
+      // Combine conversation context with current prompt
+      const fullPrompt = `${conversationContext}\n---\n\n${userPrompt}`;
+      
+      // Use generateContent with full context
+      const result = await model.generateContent(fullPrompt);
+      analysis = result.response.text();
+    } else {
+      // For initial analysis, use generateContent directly
+      const result = await model.generateContent(userPrompt);
+      analysis = result.response.text();
     }
     
-    const data = await response.json();
-    const analysisText = data.choices[0].message.content;
+    console.log('✅ Comparison analysis generated');
     
-    console.log('📥 Received response from DeepSeek via Featherless');
-    
-    // Parse JSON from response
-    const cleanedText = analysisText.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
-    const analysis = JSON.parse(cleanedText);
-    
-    console.log('✅ Comparison analysis complete');
-    
-    return NextResponse.json(analysis);
+    return NextResponse.json({ analysis });
   } catch (error: any) {
-    console.error('❌ Comparison API error:', error);
+    console.error('❌ Error generating comparison analysis:', error);
     return NextResponse.json(
       { error: error.message || 'Failed to generate comparison analysis' },
       { status: 500 }
@@ -155,61 +170,31 @@ export async function POST(request: NextRequest) {
   }
 }
 
-function buildComparisonPrompt(userData: any, properties: any[]): string {
-  let prompt = `Compare these properties for ${userData.displayName}, a first-time homebuyer:\n\n`;
+function prepareComparisonContext(comparisonData: any): string {
+  const { userData, properties } = comparisonData;
   
-  // User Profile
-  prompt += `## USER PROFILE:\n`;
-  prompt += `- Annual Income: $${userData.annualIncome.toLocaleString()}\n`;
-  prompt += `- Monthly Debt: $${userData.monthlyDebt.toLocaleString()}\n`;
-  prompt += `- Available Savings: $${userData.availableSavings.toLocaleString()}\n`;
-  prompt += `- Max Monthly Budget: $${userData.maxMonthlyBudget.toLocaleString()}\n`;
-  prompt += `- Down Payment: ${userData.downPayment < 1 ? (userData.downPayment * 100) + '%' : '$' + userData.downPayment.toLocaleString()}\n`;
-  prompt += `- Interest Rate: ${userData.interestRate}%\n`;
-  prompt += `- Credit Score: ${userData.creditScore}\n`;
-  prompt += `- Risk Comfort: ${userData.riskComfort}\n`;
-  prompt += `- Time Horizon: ${userData.timeHorizon} years\n\n`;
+  // Concise user profile
+  let context = `USER: ${userData.displayName} | Income: $${(userData.annualIncome/1000).toFixed(0)}k/yr | Budget: $${userData.maxMonthlyBudget.toLocaleString()}/mo | Savings: $${(userData.availableSavings/1000).toFixed(0)}k | ${userData.downPayment < 1 ? (userData.downPayment * 100) + '%' : '$' + (userData.downPayment/1000).toFixed(0) + 'k'} down\n\n`;
   
-  // Properties
-  properties.forEach((prop, index) => {
-    prompt += `## PROPERTY ${index + 1}: ${prop.propertyData.address}\n`;
-    prompt += `**Basic Info:**\n`;
-    prompt += `- ZPID: ${prop.propertyData.zpid}\n`;
-    prompt += `- Price: $${prop.propertyData.price.toLocaleString()}\n`;
-    prompt += `- Bedrooms: ${prop.propertyData.beds}\n`;
-    prompt += `- Bathrooms: ${prop.propertyData.baths}\n`;
-    prompt += `- Square Feet: ${prop.propertyData.area.toLocaleString()}\n`;
-    prompt += `- Home Type: ${prop.propertyData.homeType || 'Single Family'}\n`;
-    prompt += `- Days on Market: ${prop.propertyData.daysOnZillow || 'N/A'}\n`;
-    prompt += `- Zestimate: $${prop.propertyData.zestimate?.toLocaleString() || 'N/A'}\n`;
-    prompt += `- Rent Zestimate: $${prop.propertyData.rentZestimate?.toLocaleString() || 'N/A'}/month\n\n`;
+  properties.forEach((property: any, index: number) => {
+    const p = property.propertyData;
+    const ai = property.aiInsights;
     
-    if (prop.aiInsights) {
-      prompt += `**AI Analysis:**\n`;
-      prompt += `- Affordability Score: ${prop.aiInsights.affordabilityScore}/100 (${prop.aiInsights.affordabilityLevel})\n`;
-      prompt += `- Monthly Payment: $${prop.aiInsights.monthlyPayment.toLocaleString()}\n`;
-      prompt += `- DTI Ratio: ${prop.aiInsights.dtiRatio.toFixed(1)}%\n`;
-      prompt += `- Total Cash Needed: $${prop.aiInsights.financialBreakdown.totalCashNeeded.toLocaleString()}\n`;
-      prompt += `- 5-Year Total Costs: $${(
-        prop.aiInsights.insuranceBreakdown.total5Years +
-        prop.aiInsights.propertyTaxBreakdown.total5Years +
-        prop.aiInsights.hoaFeesBreakdown.total5Years +
-        prop.aiInsights.maintenanceBreakdown.total5Years
-      ).toLocaleString()}\n`;
-      
-      if (prop.aiInsights.keyInsights?.length > 0) {
-        prompt += `- Key Insights: ${prop.aiInsights.keyInsights.slice(0, 3).join('; ')}\n`;
-      }
-      
-      if (prop.aiInsights.warnings?.length > 0) {
-        prompt += `- Warnings: ${prop.aiInsights.warnings.join('; ')}\n`;
-      }
+    context += `PROPERTY ${index + 1}: ${p.address}\n`;
+    context += `Price: $${(p.price/1000).toFixed(0)}k | ${p.bedrooms}bd/${p.bathrooms}ba | ${p.sqft.toLocaleString()}sf | Zestimate: $${p.zestimate ? (p.zestimate/1000).toFixed(0) + 'k' : 'N/A'} | ${p.daysOnZillow || 'N/A'} days on market\n`;
+    context += `Monthly: $${ai.monthlyPayment.toLocaleString()} | Affordability: ${ai.affordabilityScore}/100 (${ai.affordabilityLevel}) | DTI: ${ai.dtiRatio.toFixed(1)}% | Cash needed: $${(ai.financialBreakdown.totalCashNeeded/1000).toFixed(0)}k\n`;
+    context += `5yr costs: Insurance $${(ai.insuranceBreakdown.total5Years/1000).toFixed(0)}k + Taxes $${(ai.propertyTaxBreakdown.total5Years/1000).toFixed(0)}k + HOA $${(ai.hoaFeesBreakdown.total5Years/1000).toFixed(0)}k + Maint $${(ai.maintenanceBreakdown.total5Years/1000).toFixed(0)}k = $${((ai.insuranceBreakdown.total5Years + ai.propertyTaxBreakdown.total5Years + ai.hoaFeesBreakdown.total5Years + ai.maintenanceBreakdown.total5Years)/1000).toFixed(0)}k total\n`;
+    
+    if (ai.keyInsights && ai.keyInsights.length > 0) {
+      context += `Key: ${ai.keyInsights.slice(0, 2).join(' | ')}\n`;
     }
     
-    prompt += `\n`;
+    if (ai.warnings && ai.warnings.length > 0) {
+      context += `⚠️ ${ai.warnings[0]}\n`;
+    }
+    
+    context += `\n`;
   });
   
-  prompt += `\nProvide a comprehensive comparison analysis and recommend the best property for this first-time homebuyer. Return ONLY valid JSON following the specified format.`;
-  
-  return prompt;
+  return context;
 }

@@ -22,6 +22,8 @@ interface PropertyMapProps {
   properties: Property[];
   onPropertySelect: (property: Property) => void;
   selectedProperty: Property | null;
+  compareMode?: boolean;
+  selectedForCompare?: Property[];
 }
 
 // Custom price tag icon
@@ -47,7 +49,7 @@ function MapUpdater({ center, zoom }: { center: [number, number]; zoom?: number 
   return null;
 }
 
-export function PropertyMap({ properties, onPropertySelect, selectedProperty }: PropertyMapProps) {
+export function PropertyMap({ properties, onPropertySelect, selectedProperty, compareMode = false, selectedForCompare = [] }: PropertyMapProps) {
   const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
@@ -68,6 +70,11 @@ export function PropertyMap({ properties, onPropertySelect, selectedProperty }: 
     : [29.9, -95.18]; // Houston, TX
   
   const zoom = selectedProperty ? 14 : 11; // Zoom in on selected property, otherwise show all Houston
+  
+  // Check if property is selected for comparison
+  const isPropertySelectedForCompare = (propertyId: number) => {
+    return selectedForCompare.some(p => p.id === propertyId);
+  };
 
   return (
     <>
@@ -106,6 +113,14 @@ export function PropertyMap({ properties, onPropertySelect, selectedProperty }: 
           transform: scale(1.15);
         }
         
+        .price-tag.compare-selected {
+          background: #10b981;
+          color: white;
+          border-color: #059669;
+          box-shadow: 0 4px 16px rgba(16, 185, 129, 0.4);
+          transform: scale(1.15);
+        }
+        
         .leaflet-container {
           border-radius: 16px;
           z-index: 0;
@@ -123,26 +138,40 @@ export function PropertyMap({ properties, onPropertySelect, selectedProperty }: 
           url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
         />
         <MapUpdater center={center} zoom={zoom} />
-        {properties.map((property) => (
-          <Marker
-            key={property.id}
-            position={[property.lat, property.lng]}
-            icon={createPriceIcon(property.price, selectedProperty?.id === property.id)}
-            eventHandlers={{
-              click: () => onPropertySelect(property),
-            }}
-          >
-            <Popup>
-              <div className="text-sm">
-                <p className="font-semibold">${property.price.toLocaleString()}</p>
-                <p className="text-xs text-neutral-600">{property.address}</p>
-                <p className="text-xs text-neutral-500 mt-1">
-                  {property.bedrooms} bed • {property.bathrooms} bath • {property.sqft} sqft
-                </p>
-              </div>
-            </Popup>
-          </Marker>
-        ))}
+        {properties.map((property) => {
+          const isSelected = selectedProperty?.id === property.id;
+          const isCompareSelected = isPropertySelectedForCompare(property.id);
+          
+          return (
+            <Marker
+              key={property.id}
+              position={[property.lat, property.lng]}
+              icon={L.divIcon({
+                className: 'custom-price-marker',
+                html: `
+                  <div class="price-tag ${isSelected ? 'selected' : ''} ${isCompareSelected ? 'compare-selected' : ''}">
+                    <span>${(property.price / 1000).toFixed(0)}k</span>
+                  </div>
+                `,
+                iconSize: [60, 30],
+                iconAnchor: [30, 30],
+              })}
+              eventHandlers={{
+                click: () => onPropertySelect(property),
+              }}
+            >
+              <Popup>
+                <div className="text-sm">
+                  <p className="font-semibold">${property.price.toLocaleString()}</p>
+                  <p className="text-xs text-neutral-600">{property.address}</p>
+                  <p className="text-xs text-neutral-500 mt-1">
+                    {property.bedrooms} bed • {property.bathrooms} bath • {property.sqft} sqft
+                  </p>
+                </div>
+              </Popup>
+            </Marker>
+          );
+        })}
       </MapContainer>
     </>
   );

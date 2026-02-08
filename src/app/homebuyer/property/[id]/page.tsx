@@ -6,6 +6,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { ArrowLeft, ChevronLeft, ChevronRight, Heart, Share2, X, MessageCircle, DollarSign, AlertTriangle, Lightbulb, ChevronDown, ChevronUp } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { ChatInterface } from '@/components/homebuyer/ChatInterface';
+import { MintNFTButton } from '@/components/homebuyer/MintNFTButton';
 import { useAuth } from '@/contexts/AuthContext';
 import { getUserProfile } from '@/lib/userProfile';
 
@@ -605,6 +606,15 @@ export default function PropertyDetailsPage() {
                   </div>
                   <p className="text-sm font-semibold">{aiInsights.affordabilityLevel}</p>
                 </div>
+
+                {/* Mint NFT Button */}
+                <MintNFTButton 
+                  propertyData={property}
+                  aiInsights={aiInsights}
+                  onSuccess={(mintAddress) => {
+                    console.log('✅ NFT minted successfully:', mintAddress);
+                  }}
+                />
 
                 {/* Key Insights */}
                 {aiInsights.keyInsights.length > 0 && (

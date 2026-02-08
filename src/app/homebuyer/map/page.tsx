@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { AnimatePresence } from 'framer-motion';
 import { Search, GitCompare, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { Logo } from '@/components/ui/logo';
 import { PropertyCard } from '@/components/homebuyer/PropertyCard';
 import dynamic from 'next/dynamic';
 import { useAuth } from '@/contexts/AuthContext';
@@ -342,11 +343,7 @@ export default function HomebuyerMapDashboard() {
       <nav className="w-full px-6 md:px-12 py-4 glass-strong sticky top-0 z-50 border-b border-neutral-200">
         <div className="max-w-7xl mx-auto flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 bg-gradient-hero rounded-xl flex items-center justify-center shadow-glow">
-              <span className="text-primary-foreground font-bold text-xl font-display">
-                H
-              </span>
-            </div>
+            <Logo size="sm" />
             <span className="text-2xl font-bold font-display text-gradient-primary">
               Homevest
             </span>
@@ -394,7 +391,12 @@ export default function HomebuyerMapDashboard() {
           <Button
             onClick={() => setShowFilters(!showFilters)}
             variant={showFilters ? "default" : "outline"}
-            className={`shadow-lg ${showFilters ? 'bg-primary text-white' : 'bg-white/95 backdrop-blur-sm'}`}
+            size="sm"
+            className={`shadow-lg transition-all ${
+              showFilters 
+                ? 'bg-green-600 hover:bg-green-700 text-white border-green-600' 
+                : 'bg-white/95 backdrop-blur-sm hover:bg-green-50 border-neutral-200'
+            }`}
           >
             <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z" />
@@ -406,7 +408,12 @@ export default function HomebuyerMapDashboard() {
           <Button
             onClick={toggleCompareMode}
             variant={compareMode ? "default" : "outline"}
-            className={`shadow-lg ${compareMode ? 'bg-primary text-white' : 'bg-white/95 backdrop-blur-sm'}`}
+            size="sm"
+            className={`shadow-lg transition-all ${
+              compareMode 
+                ? 'bg-blue-600 hover:bg-blue-700 text-white border-blue-600' 
+                : 'bg-white/95 backdrop-blur-sm hover:bg-blue-50 border-neutral-200'
+            }`}
           >
             <GitCompare className="w-4 h-4 mr-2" />
             {compareMode ? 'Comparing' : 'Compare'}

@@ -6,6 +6,8 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { ModeSelector } from '@/components/landing/ModeSelector';
 import { AnimatedMapBackground } from '@/components/ui/animated-map-background';
+import { LoadingScreen } from '@/components/ui/loading-screen';
+import { Logo } from '@/components/ui/logo';
 import { useAuth } from '@/contexts/AuthContext';
 import Image from 'next/image';
 
@@ -41,7 +43,7 @@ const trustCards = [
 ];
 
 export function LandingPageClient() {
-  const { user, signOut } = useAuth();
+  const { user, loading, signOut } = useAuth();
 
   const handleSignOut = async () => {
     try {
@@ -51,17 +53,18 @@ export function LandingPageClient() {
     }
   };
 
+  // Show loading screen while checking auth status
+  if (loading) {
+    return <LoadingScreen message="Welcome to Homevest..." />;
+  }
+
   return (
     <div className="min-h-screen font-body">
       {/* Navigation */}
       <nav className="w-full px-6 md:px-12 py-4 glass-strong sticky top-0 z-50 bg-white">
         <div className="max-w-7xl mx-auto flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 bg-gradient-hero rounded-xl flex items-center justify-center shadow-glow">
-              <span className="text-primary-foreground font-bold text-xl font-display">
-                H
-              </span>
-            </div>
+            <Logo size="sm" />
             <span className="text-2xl font-bold font-display text-gradient-primary">
               Homevest
             </span>
@@ -224,11 +227,7 @@ export function LandingPageClient() {
         <footer className="border-t border-border/50 py-8 px-6 md:px-12">
           <div className="max-w-7xl mx-auto flex flex-col md:flex-row items-center justify-between gap-4">
             <div className="flex items-center gap-2">
-              <div className="w-7 h-7 bg-gradient-hero rounded-lg flex items-center justify-center">
-                <span className="text-primary-foreground font-bold text-sm font-display">
-                  H
-                </span>
-              </div>
+              <Logo size="sm" className="w-7 h-7" />
               <span className="font-semibold font-display text-neutral-900">Homevest</span>
             </div>
             <p className="text-sm text-neutral-700">

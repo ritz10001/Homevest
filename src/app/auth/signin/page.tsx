@@ -5,6 +5,7 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import { motion } from 'framer-motion';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
+import { Logo } from '@/components/ui/logo';
 import { Loader2, AlertCircle } from 'lucide-react';
 
 export default function SignInPage() {
@@ -60,9 +61,7 @@ export default function SignInPage() {
         <div className="glass-strong rounded-2xl p-8 shadow-2xl">
           {/* Logo */}
           <div className="flex justify-center mb-8">
-            <div className="w-16 h-16 bg-gradient-hero rounded-2xl flex items-center justify-center shadow-glow">
-              <span className="text-primary-foreground font-bold text-3xl font-display">H</span>
-            </div>
+            <Logo size="xl" />
           </div>
 
           {/* Title */}

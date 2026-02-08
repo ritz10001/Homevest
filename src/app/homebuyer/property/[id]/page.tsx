@@ -505,7 +505,7 @@ export default function PropertyDetailsPage() {
         </div>
 
         {/* Content Area */}
-        <div className="flex gap-8 px-6 py-8">
+        <div className="flex gap-8 px-6 py-8 max-w-[1400px] mx-auto">
           {/* Left Column - Property Details */}
           <div className="flex-1 max-w-3xl">
             {/* Price and Basic Info */}
@@ -1225,18 +1225,32 @@ export default function PropertyDetailsPage() {
             </div>
           </div>
 
-          {/* Right Column - Contact Sarah */}
-          <div className="w-80 shrink-0">
-            <div className="sticky top-24">
-              <Button
-                variant="outline"
-                className="w-full py-6 text-lg font-semibold"
-                size="lg"
-                onClick={() => setShowChat(true)}
-              >
-                <MessageCircle className="w-5 h-5 mr-2" />
-                Contact Sarah
-              </Button>
+          {/* Right Column - Contact Sarah - Fixed to right */}
+          <div className="w-72 shrink-0">
+            <div className="sticky top-24 space-y-4">
+              {/* Contact Sarah Card */}
+              <div className="bg-gradient-to-br from-green-50 to-emerald-50 rounded-xl p-5 border-2 border-green-200 shadow-lg">
+                <div className="flex items-center gap-3 mb-3">
+                  <div className="w-10 h-10 bg-gradient-to-br from-green-600 to-emerald-600 rounded-full flex items-center justify-center shadow-lg">
+                    <MessageCircle className="w-5 h-5 text-white" />
+                  </div>
+                  <div>
+                    <h3 className="font-bold text-sm text-neutral-900">Need Help?</h3>
+                    <p className="text-xs text-neutral-600">Chat with Sarah</p>
+                  </div>
+                </div>
+                <p className="text-xs text-neutral-700 mb-3 leading-relaxed">
+                  Get instant answers about this property, financing options, and neighborhood insights.
+                </p>
+                <Button
+                  onClick={() => setShowChat(true)}
+                  className="w-full bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white shadow-lg hover:shadow-xl transition-all"
+                  size="default"
+                >
+                  <MessageCircle className="w-4 h-4 mr-2" />
+                  Start Chat
+                </Button>
+              </div>
             </div>
           </div>
         </div>

@@ -7,6 +7,8 @@ import { useAuth } from '@/contexts/AuthContext';
 import { doc, updateDoc } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import { Button } from '@/components/ui/button';
+import { Logo } from '@/components/ui/logo';
+import { LoadingScreen } from '@/components/ui/loading-screen';
 import { Loader2, DollarSign, TrendingUp, Target, Clock } from 'lucide-react';
 
 export default function InvestorOnboarding() {
@@ -31,12 +33,17 @@ export default function InvestorOnboarding() {
       router.push('/auth/signin?mode=investor&redirect=/investor/onboarding');
     }
     if (userProfile?.onboardingComplete && !isComplete) {
+      setIsComplete(true); // Set immediately to show loading screen
       router.push('/investor');
     }
   }, [user, userProfile, loading, router, isComplete]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!user) return;
+
+    setSaving(true);
+    setIsComplete(true); // Prevent redirect loop
     if (!user) return;
 
     setSaving(true);
@@ -64,12 +71,8 @@ export default function InvestorOnboarding() {
     }
   };
 
-  if (loading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <Loader2 className="w-8 h-8 animate-spin text-primary" />
-      </div>
-    );
+  if (loading || isComplete) {
+    return <LoadingScreen message="Setting up your investor profile..." />;
   }
 
   return (
@@ -78,9 +81,7 @@ export default function InvestorOnboarding() {
       <nav className="w-full px-6 md:px-12 py-4 glass-strong sticky top-0 z-50 border-b border-neutral-200 bg-white">
         <div className="max-w-7xl mx-auto flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 bg-gradient-hero rounded-xl flex items-center justify-center shadow-glow">
-              <span className="text-primary-foreground font-bold text-xl font-display">H</span>
-            </div>
+            <Logo size="sm" />
             <span className="text-2xl font-bold font-display text-gradient-primary">Homevest</span>
           </div>
         </div>

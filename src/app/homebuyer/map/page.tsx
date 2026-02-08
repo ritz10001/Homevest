@@ -219,6 +219,8 @@ export default function HomebuyerMapDashboard() {
         
         const userDataForAI = {
           displayName: userProfile.displayName,
+          mode: userProfile.mode, // Add mode field
+          // Homebuyer fields
           annualIncome: userProfile.annualIncome,
           monthlyDebt: userProfile.monthlyDebt,
           availableSavings: userProfile.availableSavings,
@@ -230,6 +232,15 @@ export default function HomebuyerMapDashboard() {
           creditScore: userProfile.creditScore,
           riskComfort: userProfile.riskComfort,
           timeHorizon: userProfile.timeHorizon,
+          // Investor fields (may be undefined for homebuyers)
+          availableCapital: (userProfile as any).availableCapital,
+          downPaymentPercent: (userProfile as any).downPaymentPercent,
+          targetLoanTerm: (userProfile as any).targetLoanTerm,
+          estimatedInterestRate: (userProfile as any).estimatedInterestRate,
+          targetCashFlow: (userProfile as any).targetCashFlow,
+          targetROI: (userProfile as any).targetROI,
+          holdPeriod: (userProfile as any).holdPeriod,
+          riskTolerance: (userProfile as any).riskTolerance,
         };
         
         console.log(`🤖 Generating AI insights for Property ${i + 1}...`);

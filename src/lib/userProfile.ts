@@ -15,12 +15,14 @@ export async function getUserProfile(uid: string): Promise<UserProfile | null> {
     }
     
     const data = userDoc.data();
+    console.log('🔥 getUserProfile - Full Firestore data:', data);
     
     return {
       uid: data.uid,
       email: data.email,
       displayName: data.displayName,
       mode: data.mode,
+      // Homebuyer fields
       annualIncome: data.annualIncome,
       monthlyDebt: data.monthlyDebt,
       availableSavings: data.availableSavings,
@@ -32,6 +34,16 @@ export async function getUserProfile(uid: string): Promise<UserProfile | null> {
       creditScore: data.creditScore,
       riskComfort: data.riskComfort,
       timeHorizon: data.timeHorizon,
+      // Investor fields
+      availableCapital: data.availableCapital,
+      downPaymentPercent: data.downPaymentPercent,
+      targetLoanTerm: data.targetLoanTerm,
+      estimatedInterestRate: data.estimatedInterestRate,
+      targetCashFlow: data.targetCashFlow,
+      targetROI: data.targetROI,
+      holdPeriod: data.holdPeriod,
+      riskTolerance: data.riskTolerance,
+      // Common fields
       onboardingComplete: data.onboardingComplete,
       photoURL: data.photoURL,
       createdAt: data.createdAt,

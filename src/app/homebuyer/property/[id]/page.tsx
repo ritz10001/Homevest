@@ -219,6 +219,17 @@ export default function PropertyDetailsPage() {
       }
       
       console.log('✅ User profile loaded:', userProfile);
+      console.log('📋 User profile fields:', {
+        mode: userProfile.mode,
+        onboardingComplete: userProfile.onboardingComplete,
+        // Homebuyer fields
+        annualIncome: userProfile.annualIncome,
+        monthlyDebt: userProfile.monthlyDebt,
+        // Investor fields
+        availableCapital: (userProfile as any).availableCapital,
+        downPaymentPercent: (userProfile as any).downPaymentPercent,
+        estimatedInterestRate: (userProfile as any).estimatedInterestRate,
+      });
       
       // Prepare data for AI
       const propertyData = {
@@ -243,6 +254,8 @@ export default function PropertyDetailsPage() {
       
       const userData = {
         displayName: userProfile.displayName,
+        mode: userProfile.mode, // Add mode field
+        // Homebuyer fields
         annualIncome: userProfile.annualIncome,
         monthlyDebt: userProfile.monthlyDebt,
         availableSavings: userProfile.availableSavings,
@@ -254,6 +267,15 @@ export default function PropertyDetailsPage() {
         creditScore: userProfile.creditScore,
         riskComfort: userProfile.riskComfort,
         timeHorizon: userProfile.timeHorizon,
+        // Investor fields (may be undefined for homebuyers)
+        availableCapital: (userProfile as any).availableCapital,
+        downPaymentPercent: (userProfile as any).downPaymentPercent,
+        targetLoanTerm: (userProfile as any).targetLoanTerm,
+        estimatedInterestRate: (userProfile as any).estimatedInterestRate,
+        targetCashFlow: (userProfile as any).targetCashFlow,
+        targetROI: (userProfile as any).targetROI,
+        holdPeriod: (userProfile as any).holdPeriod,
+        riskTolerance: (userProfile as any).riskTolerance,
       };
       
       console.log('📊 Property data:', propertyData);
@@ -503,8 +525,8 @@ export default function PropertyDetailsPage() {
               )}
             </div>
 
-            {/* Estimated Monthly Payment */}
-            {aiInsights && (
+            {/* Estimated Monthly Payment - Homebuyer only */}
+            {aiInsights && !('monthlyCashFlow' in aiInsights) && (
               <div className="mb-6 p-4 bg-neutral-50 rounded-lg border border-neutral-200">
                 <p className="text-sm text-neutral-600 mb-1">Est. ${aiInsights.monthlyPayment.toLocaleString()}/mo</p>
                 <button className="text-sm text-blue-600 hover:underline">Get pre-qualified</button>
@@ -592,6 +614,42 @@ export default function PropertyDetailsPage() {
               <div className="mb-8 space-y-6">
                 <h2 className="text-2xl font-bold text-neutral-900">AI-Powered Analysis</h2>
                 
+                {/* Check if this is investor analysis (has different structure) */}
+                {('monthlyCashFlow' in aiInsights) ? (
+                  // Investor Analysis Display
+                  <div className="bg-gradient-to-br from-green-50 to-emerald-50 rounded-xl border-2 border-green-200 p-6">
+                    <h3 className="text-xl font-bold text-neutral-900 mb-4">Investment Analysis by William</h3>
+                    <div className="space-y-4">
+                      <div className="flex justify-between items-center">
+                        <span className="text-neutral-700">Investment Score</span>
+                        <span className="text-2xl font-bold text-green-600">{(aiInsights as any).investmentScore || 0}/100</span>
+                      </div>
+                      <div className="flex justify-between items-center">
+                        <span className="text-neutral-700">Investment Level</span>
+                        <span className="font-semibold text-green-700">{(aiInsights as any).investmentLevel || 'N/A'}</span>
+                      </div>
+                      <div className="flex justify-between items-center">
+                        <span className="text-neutral-700">Monthly Cash Flow</span>
+                        <span className="text-xl font-bold text-green-600">
+                          ${((aiInsights as any).monthlyCashFlow || 0).toLocaleString()}
+                        </span>
+                      </div>
+                      <div className="flex justify-between items-center">
+                        <span className="text-neutral-700">Cash-on-Cash Return</span>
+                        <span className="font-semibold">{((aiInsights as any).cashOnCashReturn || 0).toFixed(2)}%</span>
+                      </div>
+                      <div className="flex justify-between items-center">
+                        <span className="text-neutral-700">Cap Rate</span>
+                        <span className="font-semibold">{((aiInsights as any).capRate || 0).toFixed(2)}%</span>
+                      </div>
+                      <div className="pt-4 border-t border-green-200">
+                        <p className="text-sm text-neutral-700 leading-relaxed">{(aiInsights as any).williamRecommendation || 'Analysis in progress...'}</p>
+                      </div>
+                    </div>
+                  </div>
+                ) : (
+                  // Homebuyer Analysis Display (existing code)
+                  <>
                 {/* Affordability Score */}
                 <div className={`p-6 rounded-xl ${getAffordabilityColor()}`}>
                   <div className="flex items-center justify-between mb-4">
@@ -606,8 +664,11 @@ export default function PropertyDetailsPage() {
                   </div>
                   <p className="text-sm font-semibold">{aiInsights.affordabilityLevel}</p>
                 </div>
+                </>
+                )}
 
                 {/* Mint NFT Button */}
+                {!('monthlyCashFlow' in aiInsights) && (
                 <MintNFTButton 
                   propertyData={property}
                   aiInsights={aiInsights}
@@ -615,9 +676,10 @@ export default function PropertyDetailsPage() {
                     console.log('✅ NFT minted successfully:', mintAddress);
                   }}
                 />
+                )}
 
                 {/* Key Insights */}
-                {aiInsights.keyInsights.length > 0 && (
+                {aiInsights.keyInsights && aiInsights.keyInsights.length > 0 && (
                   <div className="bg-gradient-to-br from-blue-50 to-indigo-50 rounded-xl border-2 border-blue-200 overflow-hidden">
                     <button
                       onClick={() => toggleSection('keyInsights')}
@@ -646,7 +708,7 @@ export default function PropertyDetailsPage() {
                 )}
 
                 {/* Warnings */}
-                {aiInsights.warnings.length > 0 && (
+                {aiInsights.warnings && aiInsights.warnings.length > 0 && (
                   <div className="bg-orange-50 rounded-xl border-2 border-orange-200 overflow-hidden">
                     <button
                       onClick={() => toggleSection('warnings')}
@@ -674,7 +736,8 @@ export default function PropertyDetailsPage() {
                   </div>
                 )}
 
-                {/* Financial Breakdown */}
+                {/* Financial Breakdown - Homebuyer only */}
+                {!('monthlyCashFlow' in aiInsights) && aiInsights.financialBreakdown && (
                 <div className="bg-white rounded-xl border border-neutral-200 overflow-hidden">
                   <button
                     onClick={() => toggleSection('financial')}
@@ -719,8 +782,10 @@ export default function PropertyDetailsPage() {
                     </div>
                   )}
                 </div>
+                )}
 
-                {/* HomePilot's Advisor Message */}
+                {/* Sarah's/William's Advisor Message */}
+                {!('monthlyCashFlow' in aiInsights) && aiInsights.advisorMessage && (
                 <div className="bg-gradient-to-br from-purple-50 to-pink-50 rounded-xl border-2 border-purple-200 overflow-hidden">
                   <button
                     onClick={() => toggleSection('advisor')}
@@ -731,7 +796,7 @@ export default function PropertyDetailsPage() {
                         <span className="text-white text-xl">🏠</span>
                       </div>
                       <div>
-                        <h4 className="text-lg font-bold text-neutral-900">HomePilot Advisor</h4>
+                        <h4 className="text-lg font-bold text-neutral-900">Sarah's Advice</h4>
                         <p className="text-xs text-neutral-600">Your AI Home Buying Mentor</p>
                       </div>
                     </div>
@@ -749,8 +814,10 @@ export default function PropertyDetailsPage() {
                     </div>
                   )}
                 </div>
+                )}
 
-                {/* 5-Year Cost Projections */}
+                {/* 5-Year Cost Projections - Homebuyer only */}
+                {!('monthlyCashFlow' in aiInsights) && aiInsights.incomeBreakdown && (
                 <div className="mt-8">
                   <h2 className="text-2xl font-bold text-neutral-900 mb-6">5-Year Cost Projections</h2>
                   
@@ -1081,6 +1148,7 @@ export default function PropertyDetailsPage() {
                     )}
                   </div>
                 </div>
+                )}
               </div>
             )}
 
@@ -1108,7 +1176,7 @@ export default function PropertyDetailsPage() {
             </div>
           </div>
 
-          {/* Right Column - Contact HomePilot */}
+          {/* Right Column - Contact Sarah */}
           <div className="w-80 shrink-0">
             <div className="sticky top-24">
               <Button
@@ -1145,7 +1213,7 @@ export default function PropertyDetailsPage() {
               className="fixed top-0 right-0 h-screen w-[450px] bg-white shadow-2xl z-50 flex flex-col"
             >
               <div className="flex items-center justify-between p-4 border-b border-neutral-200 shrink-0">
-                <h3 className="text-lg font-semibold">Chat with HomePilot</h3>
+                <h3 className="text-lg font-semibold">Chat with Sarah</h3>
                 <button
                   onClick={() => setShowChat(false)}
                   className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-neutral-100 transition-colors"

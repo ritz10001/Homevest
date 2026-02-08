@@ -113,7 +113,7 @@ export interface AIInsights {
   };
 }
 
-const SYSTEM_PROMPT = `You are HomePilot, an expert AI home buying advisor with deep knowledge of real estate, mortgages, and personal finance. Your role is to analyze properties and provide personalized, actionable advice to homebuyers.
+const SYSTEM_PROMPT = `You are Sarah, an expert AI home buying advisor with deep knowledge of real estate, mortgages, and personal finance. Your role is to analyze properties and provide personalized, actionable advice to homebuyers.
 
 ## Your Expertise:
 - Real estate market analysis
@@ -348,14 +348,88 @@ Provide a comprehensive analysis following the framework. Return ONLY valid JSON
     const response = await result.response;
     const text = response.text();
     console.log('📥 Received response from Gemini');
-    console.log('Raw response:', text);
+    console.log('Raw response length:', text.length);
+    console.log('Raw response preview:', text.substring(0, 500));
     
     // Clean up the response (remove markdown code blocks if present)
-    const cleanedText = text.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
+    let cleanedText = text.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
+    console.log('Cleaned response length:', cleanedText.length);
     console.log('Cleaned response:', cleanedText);
     
+    // Check if JSON is incomplete (doesn't end with })
+    if (!cleanedText.endsWith('}')) {
+      console.log('⚠️ JSON appears incomplete, attempting to complete it...');
+      
+      // Find the last complete property by looking for the last valid comma or colon
+      const lastComma = cleanedText.lastIndexOf(',');
+      const lastColon = cleanedText.lastIndexOf(':');
+      const lastQuote = cleanedText.lastIndexOf('"');
+      
+      // If we're in the middle of a value, truncate to last complete property
+      if (lastColon > lastComma && lastQuote > lastColon) {
+        // We're in the middle of a property value, remove incomplete part
+        cleanedText = cleanedText.substring(0, lastComma);
+      } else if (lastColon > lastComma) {
+        // We have a property name but no value, remove it
+        const lastCompleteComma = cleanedText.lastIndexOf(',', lastColon - 1);
+        if (lastCompleteComma > 0) {
+          cleanedText = cleanedText.substring(0, lastCompleteComma);
+        }
+      }
+      
+      // Now count and close braces/brackets
+      let openBraces = 0;
+      let openBrackets = 0;
+      let inString = false;
+      let escapeNext = false;
+      
+      for (let i = 0; i < cleanedText.length; i++) {
+        const char = cleanedText[i];
+        
+        if (escapeNext) {
+          escapeNext = false;
+          continue;
+        }
+        
+        if (char === '\\') {
+          escapeNext = true;
+          continue;
+        }
+        
+        if (char === '"') {
+          inString = !inString;
+          continue;
+        }
+        
+        if (!inString) {
+          if (char === '{') openBraces++;
+          if (char === '}') openBraces--;
+          if (char === '[') openBrackets++;
+          if (char === ']') openBrackets--;
+        }
+      }
+      
+      console.log('Open braces:', openBraces, 'Open brackets:', openBrackets);
+      
+      // Close any open strings
+      if (inString) {
+        cleanedText += '"';
+      }
+      
+      // Close open brackets and braces
+      for (let i = 0; i < openBrackets; i++) {
+        cleanedText += ']';
+      }
+      for (let i = 0; i < openBraces; i++) {
+        cleanedText += '}';
+      }
+      
+      console.log('Completed JSON, new length:', cleanedText.length);
+      console.log('Completed JSON:', cleanedText);
+    }
+    
     const analysis = JSON.parse(cleanedText);
-    console.log('✅ Parsed analysis:', analysis);
+    console.log('✅ Parsed analysis successfully');
     
     return analysis;
   } catch (error) {
@@ -366,3 +440,172 @@ Provide a comprehensive analysis following the framework. Return ONLY valid JSON
     throw new Error('Failed to generate AI analysis. Please check your API key and try again.');
   }
 }
+
+
+/**
+ * Universal Analysis Function - Routes to Sarah or William based on user mode
+ */
+import { WILLIAM_SYSTEM_PROMPT, InvestorUserData, InvestorInsights } from './investorAnalysis';
+
+export async function generateUniversalAnalysis(
+  property: PropertyData,
+  user: UserData | InvestorUserData | any
+): Promise<AIInsights | InvestorInsights> {
+  console.log('🤖 generateUniversalAnalysis called');
+  console.log('Full user data:', JSON.stringify(user, null, 2));
+  console.log('User mode:', user.mode);
+  
+  // Validate user data
+  if (!user) {
+    throw new Error('User data is required for analysis');
+  }
+  
+  // Check if user is investor
+  const isInvestor = user.mode === 'investor';
+  
+  if (isInvestor) {
+    // Validate investor fields
+    if (!user.availableCapital || !user.downPaymentPercent || !user.estimatedInterestRate) {
+      throw new Error('Investor profile is incomplete. Please complete onboarding first.');
+    }
+    return generateInvestorAnalysis(property, user as InvestorUserData);
+  } else {
+    // Validate homebuyer fields
+    if (!user.annualIncome || !user.monthlyDebt || !user.availableSavings) {
+      console.error('Missing homebuyer fields:', {
+        hasAnnualIncome: !!user.annualIncome,
+        hasMonthlyDebt: !!user.monthlyDebt,
+        hasAvailableSavings: !!user.availableSavings,
+        hasMaxMonthlyBudget: !!user.maxMonthlyBudget,
+        hasDownPayment: !!user.downPayment
+      });
+      throw new Error('Homebuyer profile is incomplete. Please complete onboarding first.');
+    }
+    return generateAIAnalysis(property, user as UserData);
+  }
+}
+
+/**
+ * Generate William's Investor Analysis
+ */
+async function generateInvestorAnalysis(
+  property: PropertyData,
+  user: InvestorUserData
+): Promise<InvestorInsights> {
+  console.log('🤖 generateInvestorAnalysis called (William)');
+
+  try {
+    const model = genAI.getGenerativeModel({
+      model: 'gemini-2.5-flash',
+      generationConfig: {
+        temperature: 0.7,
+        topP: 0.95,
+        topK: 40,
+        maxOutputTokens: 8192,
+      },
+      systemInstruction: WILLIAM_SYSTEM_PROMPT,
+    });
+    console.log('✅ Gemini 2.0 Flash model initialized for William');
+
+    const dp = property.price * (user.downPaymentPercent / 100);
+    const rent = property.rentZestimate || 2500;
+
+    const prompt = `Analyze: ${property.address}, Price $${property.price.toLocaleString()}, ${property.beds}bd/${property.baths}ba, ${property.area}sf, Rent $${rent}/mo
+Investor: ${user.displayName}, Capital $${user.availableCapital?.toLocaleString()}, ${user.downPaymentPercent}% down, ${user.estimatedInterestRate}% rate, ${user.targetLoanTerm}yr term, Hold ${user.holdPeriod}yr
+Return complete valid JSON.`;
+
+    console.log('📤 Sending to Gemini...');
+    const result = await model.generateContent(prompt);
+    const response = result.response;
+    const text = response.text();
+    console.log('📥 Response length:', text.length);
+    console.log('📥 Full response:', text);
+
+    let cleanedText = text.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
+    console.log('Cleaned response length:', cleanedText.length);
+    console.log('Cleaned response:', cleanedText);
+    
+    // Check if JSON is incomplete (doesn't end with })
+    if (!cleanedText.endsWith('}')) {
+      console.log('⚠️ JSON appears incomplete, attempting to complete it...');
+      
+      // Find the last complete property by looking for the last valid comma or colon
+      const lastComma = cleanedText.lastIndexOf(',');
+      const lastColon = cleanedText.lastIndexOf(':');
+      const lastQuote = cleanedText.lastIndexOf('"');
+      
+      // If we're in the middle of a value, truncate to last complete property
+      if (lastColon > lastComma && lastQuote > lastColon) {
+        // We're in the middle of a property value, remove incomplete part
+        cleanedText = cleanedText.substring(0, lastComma);
+      } else if (lastColon > lastComma) {
+        // We have a property name but no value, remove it
+        const lastCompleteComma = cleanedText.lastIndexOf(',', lastColon - 1);
+        if (lastCompleteComma > 0) {
+          cleanedText = cleanedText.substring(0, lastCompleteComma);
+        }
+      }
+      
+      // Now count and close braces/brackets
+      let openBraces = 0;
+      let openBrackets = 0;
+      let inString = false;
+      let escapeNext = false;
+      
+      for (let i = 0; i < cleanedText.length; i++) {
+        const char = cleanedText[i];
+        
+        if (escapeNext) {
+          escapeNext = false;
+          continue;
+        }
+        
+        if (char === '\\') {
+          escapeNext = true;
+          continue;
+        }
+        
+        if (char === '"') {
+          inString = !inString;
+          continue;
+        }
+        
+        if (!inString) {
+          if (char === '{') openBraces++;
+          if (char === '}') openBraces--;
+          if (char === '[') openBrackets++;
+          if (char === ']') openBrackets--;
+        }
+      }
+      
+      console.log('Open braces:', openBraces, 'Open brackets:', openBrackets);
+      
+      // Close any open strings
+      if (inString) {
+        cleanedText += '"';
+      }
+      
+      // Close open brackets and braces
+      for (let i = 0; i < openBrackets; i++) {
+        cleanedText += ']';
+      }
+      for (let i = 0; i < openBraces; i++) {
+        cleanedText += '}';
+      }
+      
+      console.log('Completed JSON, new length:', cleanedText.length);
+      console.log('Completed JSON:', cleanedText);
+    }
+
+    const analysis = JSON.parse(cleanedText);
+    console.log('✅ Parsed successfully');
+
+    return analysis;
+  } catch (error: any) {
+    console.error('❌ Error:', error.message);
+    console.error('❌ Stack:', error.stack);
+    throw new Error(`Failed to generate investment analysis: ${error.message}`);
+  }
+}
+
+

@@ -126,12 +126,12 @@ export default function HomebuyerIntro() {
             className="text-center mb-8 space-y-6"
           >
             <h1 className="text-5xl md:text-6xl lg:text-7xl font-bold tracking-tight leading-[1.1] font-display text-neutral-900">
-              Meet Homepilot,
+              Meet Sarah,
               <br />
               <span className="bg-gradient-to-r from-neutral-900 to-green-600 bg-clip-text text-transparent">Your AI Home Advisor</span>
             </h1>
             <p className="text-lg md:text-xl text-neutral-700 max-w-2xl mx-auto leading-relaxed">
-              Homepilot is your personal AI mentor for first-time homebuying. She helps you find homes
+              Sarah is your personal AI mentor for first-time homebuying. She helps you find homes
               that fit your budget, lifestyle, and dreams—without the stress.
             </p>
           </motion.div>
@@ -159,7 +159,7 @@ export default function HomebuyerIntro() {
             className="text-center mb-12"
           >
             <h2 className="text-3xl md:text-4xl font-bold text-neutral-900 mb-4">
-              What Homepilot Helps You With
+              What Sarah Helps You With
             </h2>
             <p className="text-lg text-neutral-600 max-w-2xl mx-auto">
               Your AI advisor understands what matters most to first-time buyers

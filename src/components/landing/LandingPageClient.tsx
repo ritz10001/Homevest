@@ -183,7 +183,7 @@ export function LandingPageClient() {
                   <div>
                     <p className="text-sm font-medium text-white/80 mb-1">Featured Properties</p>
                     <p className="text-2xl font-bold font-display text-white">
-                      2,500+ Homes Analyzed
+                      1,000+ Homes Analyzed
                     </p>
                   </div>
                   <Button variant="gold" size="sm" className="rounded-xl">

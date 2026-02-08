@@ -13,6 +13,7 @@ export default function InvestorOnboarding() {
   const { user, userProfile, loading } = useAuth();
   const router = useRouter();
   const [saving, setSaving] = useState(false);
+  const [isComplete, setIsComplete] = useState(false);
   
   const [formData, setFormData] = useState({
     availableCapital: '',
@@ -29,16 +30,17 @@ export default function InvestorOnboarding() {
     if (!loading && !user) {
       router.push('/auth/signin?mode=investor&redirect=/investor/onboarding');
     }
-    if (userProfile?.onboardingComplete) {
+    if (userProfile?.onboardingComplete && !isComplete) {
       router.push('/investor');
     }
-  }, [user, userProfile, loading, router]);
+  }, [user, userProfile, loading, router, isComplete]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!user) return;
 
     setSaving(true);
+    setIsComplete(true); // Prevent redirect loop
     try {
       await updateDoc(doc(db, 'users', user.uid), {
         mode: 'investor',
@@ -52,9 +54,11 @@ export default function InvestorOnboarding() {
         holdPeriod: parseInt(formData.holdPeriod),
         riskTolerance: formData.riskTolerance,
       });
-      router.push('/investor');
+      // Force navigation after successful save
+      window.location.href = '/investor';
     } catch (error) {
       console.error('Error saving onboarding:', error);
+      setIsComplete(false);
     } finally {
       setSaving(false);
     }

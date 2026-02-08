@@ -71,7 +71,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         // Fetch user profile from Firestore
         const userDoc = await getDoc(doc(db, 'users', user.uid));
         if (userDoc.exists()) {
-          setUserProfile(userDoc.data() as UserProfile);
+          const profileData = userDoc.data();
+          console.log('🔥 Firestore data loaded:', profileData);
+          console.log('🔥 Investor fields:', {
+            availableCapital: profileData.availableCapital,
+            downPaymentPercent: profileData.downPaymentPercent,
+            estimatedInterestRate: profileData.estimatedInterestRate,
+          });
+          setUserProfile(profileData as UserProfile);
         } else {
           // Create initial profile
           const newProfile: UserProfile = {

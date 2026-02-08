@@ -1,117 +1,13 @@
-/**
- * AI-Powered Property Analysis using Gemini API
- * Simple approach: Feed user data + property data to AI, get insights back
- */
-
+import { NextRequest, NextResponse } from 'next/server';
 import { GoogleGenerativeAI } from '@google/generative-ai';
 
-const apiKey = (process.env.GEMINI_API_KEY || 'AIzaSyCDBdElV8ymp_oRmJ3HmGaCB2ncVgU2T10');
+const apiKey = process.env.GEMINI_API_KEY;
 
 if (!apiKey) {
   throw new Error('GEMINI_API_KEY is not defined in environment variables');
 }
 
 const genAI = new GoogleGenerativeAI(apiKey);
-
-export interface PropertyData {
-  zpid: string;
-  price: number;
-  address: string;
-  addressCity: string;
-  addressState: string;
-  addressZipcode: string;
-  beds: number;
-  baths: number;
-  area: number;
-  homeType?: string;
-  daysOnZillow?: number;
-  zestimate?: number;
-  rentZestimate?: number;
-  taxAssessedValue?: number;
-  lotAreaValue?: number;
-  lotAreaUnit?: string;
-  brokerName?: string;
-}
-
-export interface UserData {
-  displayName: string;
-  annualIncome: number;
-  monthlyDebt: number;
-  availableSavings: number;
-  maxMonthlyBudget: number;
-  downPayment: number;
-  interestRate: number;
-  loanTerm: number;
-  includePMI: boolean;
-  creditScore: string;
-  riskComfort: string;
-  timeHorizon: string;
-}
-
-export interface AIInsights {
-  affordabilityScore: number;
-  affordabilityLevel: 'Affordable' | 'Stretch' | 'Too Expensive';
-  monthlyPayment: number;
-  dtiRatio: number;
-  advisorMessage: string;
-  keyInsights: string[];
-  warnings: string[];
-  financialBreakdown: {
-    downPaymentNeeded: number;
-    closingCosts: number;
-    totalCashNeeded: number;
-    monthsToSave: number;
-  };
-  incomeBreakdown: {
-    monthlyGrossIncome: number;
-    monthlyNetIncome: number;
-    afterHousingIncome: number;
-    housingToIncomeRatio: number;
-  };
-  insuranceBreakdown: {
-    year1: number;
-    year2: number;
-    year3: number;
-    year4: number;
-    year5: number;
-    total5Years: number;
-    averageMonthly: number;
-    notes: string;
-  };
-  hoaFeesBreakdown: {
-    monthlyFee: number;
-    year1: number;
-    year2: number;
-    year3: number;
-    year4: number;
-    year5: number;
-    total5Years: number;
-    notes: string;
-  };
-  propertyTaxBreakdown: {
-    annualTax: number;
-    monthlyTax: number;
-    effectiveRate: number;
-    zipCode: string;
-    year1: number;
-    year2: number;
-    year3: number;
-    year4: number;
-    year5: number;
-    total5Years: number;
-    notes: string;
-  };
-  maintenanceBreakdown: {
-    monthlyReserve: number;
-    year1: number;
-    year2: number;
-    year3: number;
-    year4: number;
-    year5: number;
-    total5Years: number;
-    notes: string;
-  };
-}
 
 const SYSTEM_PROMPT = `You are HomePilot, an expert AI home buying advisor with deep knowledge of real estate, mortgages, and personal finance. Your role is to analyze properties and provide personalized, actionable advice to homebuyers.
 
@@ -288,18 +184,12 @@ Return a JSON object with this exact structure:
 - Consider user's risk comfort level when making recommendations
 - Use emojis in insights/warnings for visual appeal (🎯, ⚡, ✅, 💰, 🏡, ⚠️)`;
 
-/**
- * Generate AI-powered property analysis
- */
-export async function generateAIAnalysis(
-  property: PropertyData,
-  user: UserData
-): Promise<AIInsights> {
-  console.log('🤖 generateAIAnalysis called');
-  console.log('Property:', property);
-  console.log('User:', user);
-  
+export async function POST(request: NextRequest) {
   try {
+    const { propertyData, userData } = await request.json();
+    
+    console.log('🤖 API: Starting AI analysis...');
+    
     const model = genAI.getGenerativeModel({ 
       model: 'gemini-2.5-flash',
       generationConfig: {
@@ -310,59 +200,56 @@ export async function generateAIAnalysis(
       },
       systemInstruction: SYSTEM_PROMPT,
     });
-    console.log('✅ Gemini 2.5 Flash model initialized');
-
-    const prompt = `Analyze this property for ${user.displayName}:
+    
+    const prompt = `Analyze this property for ${userData.displayName}:
 
 ## USER PROFILE:
-- Annual Income: $${user.annualIncome.toLocaleString()}
-- Monthly Debt: $${user.monthlyDebt.toLocaleString()}
-- Available Savings: $${user.availableSavings.toLocaleString()}
-- Max Monthly Budget: $${user.maxMonthlyBudget.toLocaleString()}
-- Preferred Down Payment: ${user.downPayment < 1 ? (user.downPayment * 100) + '%' : '$' + user.downPayment.toLocaleString()}
-- Interest Rate: ${user.interestRate}%
-- Loan Term: ${user.loanTerm} years
-- Include PMI: ${user.includePMI ? 'Yes' : 'No'}
-- Credit Score: ${user.creditScore}
-- Risk Comfort: ${user.riskComfort}
-- Time Horizon: ${user.timeHorizon} years
+- Annual Income: ${userData.annualIncome.toLocaleString()}
+- Monthly Debt: ${userData.monthlyDebt.toLocaleString()}
+- Available Savings: ${userData.availableSavings.toLocaleString()}
+- Max Monthly Budget: ${userData.maxMonthlyBudget.toLocaleString()}
+- Preferred Down Payment: ${userData.downPayment < 1 ? (userData.downPayment * 100) + '%' : userData.downPayment.toLocaleString()}
+- Interest Rate: ${userData.interestRate}%
+- Loan Term: ${userData.loanTerm} years
+- Include PMI: ${userData.includePMI ? 'Yes' : 'No'}
+- Credit Score: ${userData.creditScore}
+- Risk Comfort: ${userData.riskComfort}
+- Time Horizon: ${userData.timeHorizon} years
 
 ## PROPERTY DETAILS:
-- Address: ${property.address}
-- Price: $${property.price.toLocaleString()}
-- Bedrooms: ${property.beds}
-- Bathrooms: ${property.baths}
-- Square Feet: ${property.area.toLocaleString()}
-- Home Type: ${property.homeType || 'Single Family'}
-- Days on Zillow: ${property.daysOnZillow || 'N/A'}
-- Zestimate: $${property.zestimate?.toLocaleString() || 'N/A'}
-- Rent Zestimate: $${property.rentZestimate?.toLocaleString() || 'N/A'}/month
-- Tax Assessed Value: $${property.taxAssessedValue?.toLocaleString() || 'N/A'}
-- Lot Size: ${property.lotAreaValue?.toLocaleString() || 'N/A'} ${property.lotAreaUnit || 'sqft'}
-- Listed by: ${property.brokerName || 'N/A'}
+- Address: ${propertyData.address}
+- Price: ${propertyData.price.toLocaleString()}
+- Bedrooms: ${propertyData.beds}
+- Bathrooms: ${propertyData.baths}
+- Square Feet: ${propertyData.area.toLocaleString()}
+- Home Type: ${propertyData.homeType || 'Single Family'}
+- Days on Zillow: ${propertyData.daysOnZillow || 'N/A'}
+- Zestimate: ${propertyData.zestimate?.toLocaleString() || 'N/A'}
+- Rent Zestimate: ${propertyData.rentZestimate?.toLocaleString() || 'N/A'}/month
+- Tax Assessed Value: ${propertyData.taxAssessedValue?.toLocaleString() || 'N/A'}
+- Lot Size: ${propertyData.lotAreaValue?.toLocaleString() || 'N/A'} ${propertyData.lotAreaUnit || 'sqft'}
+- Listed by: ${propertyData.brokerName || 'N/A'}
 
 Provide a comprehensive analysis following the framework. Return ONLY valid JSON, no markdown formatting.`;
 
-    console.log('📤 Sending prompt to Gemini...');
+    console.log('📤 API: Sending prompt to Gemini...');
     const result = await model.generateContent(prompt);
-    const response = await result.response;
+    const response = result.response;
     const text = response.text();
-    console.log('📥 Received response from Gemini');
-    console.log('Raw response:', text);
+    console.log('📥 API: Received response from Gemini');
     
     // Clean up the response (remove markdown code blocks if present)
     const cleanedText = text.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
-    console.log('Cleaned response:', cleanedText);
     
     const analysis = JSON.parse(cleanedText);
-    console.log('✅ Parsed analysis:', analysis);
+    console.log('✅ API: Parsed analysis successfully');
     
-    return analysis;
-  } catch (error) {
-    console.error('❌ Error generating AI analysis:', error);
-    console.error('Error details:', error);
-    
-    // Re-throw the error instead of returning fallback
-    throw new Error('Failed to generate AI analysis. Please check your API key and try again.');
+    return NextResponse.json(analysis);
+  } catch (error: any) {
+    console.error('❌ API: Error generating AI analysis:', error);
+    return NextResponse.json(
+      { error: 'Failed to generate AI analysis. Please try again.' },
+      { status: 500 }
+    );
   }
 }

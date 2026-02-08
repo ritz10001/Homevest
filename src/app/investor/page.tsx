@@ -6,9 +6,10 @@ import { motion } from 'framer-motion';
 import { Sparkles, TrendingUp, Shield, DollarSign, BarChart3, MessageCircle } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import { Logo } from '@/components/ui/logo';
 import { PropertySearch } from '@/components/landing/PropertySearch';
 import { useAuth } from '@/contexts/AuthContext';
-import { Loader2 } from 'lucide-react';
+import { LoadingScreen } from '@/components/ui/loading-screen';
 
 const fadeIn = {
   hidden: { opacity: 0, y: 20 },
@@ -66,11 +67,7 @@ export default function InvestorDashboard() {
   };
 
   if (loading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <Loader2 className="w-8 h-8 animate-spin text-primary" />
-      </div>
-    );
+    return <LoadingScreen message="Loading your investor dashboard..." />;
   }
 
   return (
@@ -79,11 +76,7 @@ export default function InvestorDashboard() {
       <nav className="w-full px-6 md:px-12 py-4 glass-strong sticky top-0 z-50 border-b border-neutral-200 bg-white">
         <div className="max-w-7xl mx-auto flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 bg-gradient-hero rounded-xl flex items-center justify-center shadow-glow">
-              <span className="text-primary-foreground font-bold text-xl font-display">
-                H
-              </span>
-            </div>
+            <Logo size="sm" />
             <span className="text-2xl font-bold font-display text-gradient-primary">
               Homevest
             </span>

@@ -9,6 +9,8 @@ export interface UserProfile {
   email: string;
   displayName: string;
   mode: string;
+  
+  // Homebuyer fields
   annualIncome: number;
   monthlyDebt: number;
   availableSavings: number;
@@ -21,6 +23,20 @@ export interface UserProfile {
   riskComfort: string; // "conservative" | "balanced" | "aggressive"
   timeHorizon: string; // "1-3" | "3-5" | "5-10" | "10+"
   onboardingComplete: boolean;
+  
+  // Investor fields (optional)
+  availableCapital?: number;
+  downPaymentPercent?: number;
+  targetLoanTerm?: 15 | 30;
+  estimatedInterestRate?: number;
+  targetCashFlow?: number;
+  targetROI?: number;
+  holdPeriod?: number;
+  riskTolerance?: 'conservative' | 'moderate' | 'aggressive';
+  useZillowRent?: boolean;
+  vacancyRate?: number;
+  maintenancePercent?: number;
+  experienceLevel?: 'beginner' | 'intermediate' | 'advanced';
   
   // Optional fields
   photoURL?: string;

@@ -9,110 +9,63 @@ if (!apiKey) {
 
 const genAI = new GoogleGenerativeAI(apiKey);
 
-const COMPARISON_SYSTEM_PROMPT = `You are Sarah, a seasoned real estate advisor with 15+ years of experience helping clients find their perfect home. You combine deep market knowledge with genuine care for your clients' financial wellbeing.
+// Sarah's Homebuyer Comparison Prompt
+const SARAH_COMPARISON_PROMPT = `You are Sarah, a seasoned real estate advisor with 15+ years of experience helping clients find their perfect home.
 
-## Your Background:
-- Licensed realtor and certified financial advisor
-- Specialized in first-time homebuyers and investment properties
-- Known for straight talk and practical advice
-- You've helped hundreds of families make smart property decisions
+Your Communication Style: Conversational, concise, natural, honest, warm but professional.
 
-## Your Communication Style:
-- **Conversational**: Talk like you're sitting across the table over coffee, not writing a report
-- **Concise**: Get to the point quickly. No fluff or unnecessary details
-- **Natural**: Use contractions (I'm, you're, it's), casual phrases, and natural transitions
-- **Honest**: If something's not ideal, say it plainly. No sugar-coating
-- **Warm but Professional**: Friendly and approachable, but you know your stuff
-- **Story-driven**: Reference real experiences when relevant ("I've seen this before...")
+Initial Comparison (200-300 words max): Start with your recommendation, explain why with 2-3 key factors.
 
-## How You Analyze Properties:
+Example: "Okay, I've looked at all three properties, and honestly? I'd go with [address]. Here's why..."
 
-**Initial Comparison** (keep it brief - 200-300 words max):
-Start with your gut recommendation, then explain why in plain English. Focus on the 2-3 most important factors. Skip the obvious stuff.
+Focus On: Monthly payment vs budget, deal quality, long-term costs, red flags/opportunities, next steps.
 
-Example opening:
-"Okay, I've looked at all three properties, and honestly? I'd go with [address]. Here's why..."
+Key Phrases: "Here's the thing...", "I've seen this before...", "Honestly...", "Here's what I'd do..."
 
-**Structure your response naturally:**
-1. Lead with your recommendation (1-2 sentences)
-2. Main reason it's the best fit (2-3 sentences with key numbers)
-3. Quick comparison to the others (2-3 sentences)
-4. One important heads-up or opportunity (1-2 sentences)
-5. Next step suggestion (1 sentence)
+Goal: Help them make a confident decision quickly, not overwhelm them with data.`;
 
-**Follow-up Questions:**
-- Answer directly and briefly (100-150 words)
-- Reference specific numbers only when they matter
-- If it's a simple question, give a simple answer
-- Don't repeat information you've already shared
-- Ask clarifying questions if needed
+// William's Investor Comparison Prompt
+const WILLIAM_COMPARISON_PROMPT = `You are William, a seasoned real estate investment advisor with 20+ years of experience helping investors build profitable portfolios.
 
-## What to Focus On:
-✅ Monthly payment vs their budget
-✅ Deal quality (price vs value)
-✅ Long-term costs that matter
-✅ Red flags or opportunities
-✅ Practical next steps
+Your Communication Style: Professional, analytical, strategic, direct, honest, experienced.
 
-## What to Skip:
-❌ Lengthy explanations of basic concepts
-❌ Repeating data they can already see
-❌ Overly detailed breakdowns unless asked
-❌ Generic advice that applies to any property
-❌ Formal language or corporate speak
+Initial Comparison (300-400 words max): Start with your investment verdict, explain why with key metrics.
 
-## Tone Examples:
+Example: "Alright, I've analyzed all three properties, and here's my take: Property 2 is your best investment. Here's why..."
 
-**Too Robotic (Don't do this):**
-"Property 1 demonstrates superior affordability metrics with a DTI ratio of 25% compared to Property 2's 32%. The financial analysis indicates..."
+Focus On: Cash-on-cash return, monthly cash flow, cap rate & DSCR, deal quality, risk factors, total return potential.
 
-**Natural Sarah (Do this):**
-"Property 1 is the clear winner here. Your monthly payment would be $2,100 - well within your comfort zone. Property 2 stretches you thin at $2,600/month, and honestly, that extra $500 could stress your budget."
+Key Phrases: "Here's the deal...", "The numbers don't lie...", "I've seen this before...", "Here's what matters..."
 
-**Too Wordy (Don't do this):**
-"After careful analysis of all three properties, taking into consideration your financial profile, budget constraints, and long-term goals, I would recommend..."
-
-**Concise Sarah (Do this):**
-"Go with Property 1. It's $50k under market value, fits your budget comfortably, and you'll save $15k over five years compared to the others."
-
-## Key Phrases to Use:
-- "Here's the thing..."
-- "I've seen this before..."
-- "Honestly..."
-- "Here's what I'd do..."
-- "The real question is..."
-- "Don't worry about..."
-- "Pay attention to..."
-- "Between you and me..."
-
-## Remember:
-- You're having a conversation, not writing a report
-- Quality over quantity - say less, mean more
-- Lead with what matters most
-- Be decisive - clients want your expert opinion
-- Keep responses under 300 words unless they ask for details
-- Use numbers sparingly - only when they tell the story
-
-Your goal: Help them make a confident decision quickly, not overwhelm them with data.`;
+Goal: Help them choose the best investment property quickly with confidence, not create analysis paralysis.`;
 
 export async function POST(request: NextRequest) {
   try {
     const { comparisonData, userMessage, conversationHistory, isInitial } = await request.json();
     
     console.log('🤖 Generating comparison analysis with Gemini...');
+    console.log('User mode:', comparisonData.userData?.mode);
+    
+    // Determine which advisor to use based on user mode
+    const isInvestor = comparisonData.userData?.mode === 'investor';
+    const systemPrompt = isInvestor ? WILLIAM_COMPARISON_PROMPT : SARAH_COMPARISON_PROMPT;
+    const advisorName = isInvestor ? 'William' : 'Sarah';
+    
+    console.log(`Using ${advisorName}'s comparison prompt`);
     
     // Prepare context from comparison data
-    const context = prepareComparisonContext(comparisonData);
+    const context = prepareComparisonContext(comparisonData, isInvestor);
     
     let userPrompt = '';
     
     if (isInitial) {
       // Initial analysis request
-      userPrompt = `Please analyze these ${comparisonData.propertyCount} properties and recommend the best choice for this buyer.
+      const clientType = isInvestor ? 'investor' : 'buyer';
+      userPrompt = `Please analyze these ${comparisonData.propertyCount} properties and recommend the best choice for this ${clientType}.
 
 ${context}
 
-Provide a comprehensive comparison and clear recommendation based on the user's financial profile and the AI insights for each property.`;
+Provide a comprehensive comparison and clear recommendation.`;
     } else {
       // Follow-up question
       userPrompt = `${context}
@@ -125,9 +78,9 @@ Please answer based on the comparison data provided above.`;
     // Initialize Gemini model
     const model = genAI.getGenerativeModel({ 
       model: 'gemini-2.5-flash',
-      systemInstruction: COMPARISON_SYSTEM_PROMPT,
+      systemInstruction: systemPrompt,
       generationConfig: {
-        maxOutputTokens: 2048,
+        maxOutputTokens: 8192,
         temperature: 0.7,
         topP: 0.9,
       },
@@ -142,7 +95,7 @@ Please answer based on the comparison data provided above.`;
       // Build conversation context as text
       let conversationContext = 'Previous conversation:\n\n';
       conversationHistory.forEach((msg: any) => {
-        const role = msg.role === 'assistant' ? 'Sarah' : 'User';
+        const role = msg.role === 'assistant' ? advisorName : 'User';
         conversationContext += `${role}: ${msg.content}\n\n`;
       });
       
@@ -170,20 +123,50 @@ Please answer based on the comparison data provided above.`;
   }
 }
 
-function prepareComparisonContext(comparisonData: any): string {
+function prepareComparisonContext(comparisonData: any, isInvestor: boolean = false): string {
   const { userData, properties } = comparisonData;
   
   // Concise user profile
-  let context = `USER: ${userData.displayName} | Income: $${(userData.annualIncome/1000).toFixed(0)}k/yr | Budget: $${userData.maxMonthlyBudget.toLocaleString()}/mo | Savings: $${(userData.availableSavings/1000).toFixed(0)}k | ${userData.downPayment < 1 ? (userData.downPayment * 100) + '%' : '$' + (userData.downPayment/1000).toFixed(0) + 'k'} down\n\n`;
+  let context = '';
+  
+  if (isInvestor) {
+    // Investor profile
+    const capital = userData.availableCapital || 0;
+    const downPct = userData.downPaymentPercent || 20;
+    const rate = userData.estimatedInterestRate || 7;
+    const term = userData.targetLoanTerm || 30;
+    const targetROI = userData.targetROI || 10;
+    const targetCF = userData.targetCashFlow || 200;
+    const hold = userData.holdPeriod || 5;
+    const risk = userData.riskTolerance || 'moderate';
+    
+    context = `INVESTOR: ${userData.displayName} | Capital: ${(capital/1000).toFixed(0)}k | ${downPct}% down | ${rate}% rate | ${term}yr term | Target ROI: ${targetROI}% | Target Cash Flow: $${targetCF}/mo | Hold: ${hold}yr | Risk: ${risk}\n\n`;
+  } else {
+    // Homebuyer profile - with safe defaults
+    const income = userData.annualIncome || 0;
+    const budget = userData.maxMonthlyBudget || 0;
+    const savings = userData.availableSavings || 0;
+    const downPayment = userData.downPayment || 0;
+    
+    context = `USER: ${userData.displayName} | Income: ${(income/1000).toFixed(0)}k/yr | Budget: $${budget.toLocaleString()}/mo | Savings: ${(savings/1000).toFixed(0)}k | ${downPayment < 1 ? (downPayment * 100) + '%' : (downPayment/1000).toFixed(0) + 'k'} down\n\n`;
+  }
   
   properties.forEach((property: any, index: number) => {
     const p = property.propertyData;
     const ai = property.aiInsights;
     
     context += `PROPERTY ${index + 1}: ${p.address}\n`;
-    context += `Price: $${(p.price/1000).toFixed(0)}k | ${p.bedrooms}bd/${p.bathrooms}ba | ${p.sqft.toLocaleString()}sf | Zestimate: $${p.zestimate ? (p.zestimate/1000).toFixed(0) + 'k' : 'N/A'} | ${p.daysOnZillow || 'N/A'} days on market\n`;
-    context += `Monthly: $${ai.monthlyPayment.toLocaleString()} | Affordability: ${ai.affordabilityScore}/100 (${ai.affordabilityLevel}) | DTI: ${ai.dtiRatio.toFixed(1)}% | Cash needed: $${(ai.financialBreakdown.totalCashNeeded/1000).toFixed(0)}k\n`;
-    context += `5yr costs: Insurance $${(ai.insuranceBreakdown.total5Years/1000).toFixed(0)}k + Taxes $${(ai.propertyTaxBreakdown.total5Years/1000).toFixed(0)}k + HOA $${(ai.hoaFeesBreakdown.total5Years/1000).toFixed(0)}k + Maint $${(ai.maintenanceBreakdown.total5Years/1000).toFixed(0)}k = $${((ai.insuranceBreakdown.total5Years + ai.propertyTaxBreakdown.total5Years + ai.hoaFeesBreakdown.total5Years + ai.maintenanceBreakdown.total5Years)/1000).toFixed(0)}k total\n`;
+    context += `Price: ${(p.price/1000).toFixed(0)}k | ${p.bedrooms}bd/${p.bathrooms}ba | ${p.sqft.toLocaleString()}sf | Zestimate: ${p.zestimate ? (p.zestimate/1000).toFixed(0) + 'k' : 'N/A'} | ${p.daysOnZillow || 'N/A'} days on market\n`;
+    
+    if (isInvestor) {
+      // Investor metrics
+      context += `Monthly Cash Flow: $${ai.monthlyCashFlow?.toLocaleString() || 'N/A'} | Cash-on-Cash: ${ai.cashOnCashReturn?.toFixed(1) || 'N/A'}% | Cap Rate: ${ai.capRate?.toFixed(1) || 'N/A'}% | DSCR: ${ai.dscr?.toFixed(2) || 'N/A'} | Investment Score: ${ai.investmentScore || 'N/A'}/100 (${ai.investmentLevel || 'N/A'})\n`;
+      context += `5yr Total Return: $${((ai.fiveYearSummary?.totalReturn || 0)/1000).toFixed(0)}k | Avg Annual Return: ${ai.fiveYearSummary?.avgAnnualReturn?.toFixed(1) || 'N/A'}%\n`;
+    } else {
+      // Homebuyer metrics
+      context += `Monthly: $${ai.monthlyPayment?.toLocaleString() || 'N/A'} | Affordability: ${ai.affordabilityScore || 'N/A'}/100 (${ai.affordabilityLevel || 'N/A'}) | DTI: ${ai.dtiRatio?.toFixed(1) || 'N/A'}% | Cash needed: ${((ai.financialBreakdown?.totalCashNeeded || 0)/1000).toFixed(0)}k\n`;
+      context += `5yr costs: Insurance ${((ai.insuranceBreakdown?.total5Years || 0)/1000).toFixed(0)}k + Taxes ${((ai.propertyTaxBreakdown?.total5Years || 0)/1000).toFixed(0)}k + HOA ${((ai.hoaFeesBreakdown?.total5Years || 0)/1000).toFixed(0)}k + Maint ${((ai.maintenanceBreakdown?.total5Years || 0)/1000).toFixed(0)}k = ${(((ai.insuranceBreakdown?.total5Years || 0) + (ai.propertyTaxBreakdown?.total5Years || 0) + (ai.hoaFeesBreakdown?.total5Years || 0) + (ai.maintenanceBreakdown?.total5Years || 0))/1000).toFixed(0)}k total\n`;
+    }
     
     if (ai.keyInsights && ai.keyInsights.length > 0) {
       context += `Key: ${ai.keyInsights.slice(0, 2).join(' | ')}\n`;
@@ -191,6 +174,8 @@ function prepareComparisonContext(comparisonData: any): string {
     
     if (ai.warnings && ai.warnings.length > 0) {
       context += `⚠️ ${ai.warnings[0]}\n`;
+    } else if (ai.investmentWarnings && ai.investmentWarnings.length > 0) {
+      context += `⚠️ ${ai.investmentWarnings[0]}\n`;
     }
     
     context += `\n`;

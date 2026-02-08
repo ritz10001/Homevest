@@ -160,6 +160,8 @@ export default function HomebuyerMapDashboard() {
         uid: user.uid,
         displayName: userProfile.displayName,
         email: user.email || '',
+        mode: userProfile.mode, // Add mode field
+        // Homebuyer fields
         annualIncome: userProfile.annualIncome,
         monthlyDebt: userProfile.monthlyDebt,
         availableSavings: userProfile.availableSavings,
@@ -171,6 +173,18 @@ export default function HomebuyerMapDashboard() {
         creditScore: userProfile.creditScore,
         riskComfort: userProfile.riskComfort,
         timeHorizon: userProfile.timeHorizon,
+        // Investor fields (may be undefined for homebuyers)
+        availableCapital: (userProfile as any).availableCapital,
+        downPaymentPercent: (userProfile as any).downPaymentPercent,
+        targetLoanTerm: (userProfile as any).targetLoanTerm,
+        estimatedInterestRate: (userProfile as any).estimatedInterestRate,
+        targetCashFlow: (userProfile as any).targetCashFlow,
+        targetROI: (userProfile as any).targetROI,
+        holdPeriod: (userProfile as any).holdPeriod,
+        riskTolerance: (userProfile as any).riskTolerance,
+        vacancyRate: (userProfile as any).vacancyRate,
+        maintenancePercent: (userProfile as any).maintenancePercent,
+        experienceLevel: (userProfile as any).experienceLevel,
       };
 
       console.log('🏠 Step 2: Processing properties and generating AI insights...');
@@ -478,7 +492,7 @@ export default function HomebuyerMapDashboard() {
                   onClick={handleCompare}
                   disabled={isLoadingComparison}
                   size="sm"
-                  variant="secondary"
+                  variant="outline"
                   className="bg-white text-blue-600 hover:bg-neutral-100"
                 >
                   {isLoadingComparison ? 'Loading...' : 'Compare Now'}

@@ -7,6 +7,7 @@ import { ArrowLeft, ChevronLeft, ChevronRight, Heart, Share2, X, MessageCircle, 
 import { Button } from '@/components/ui/button';
 import { ChatInterface } from '@/components/homebuyer/ChatInterface';
 import { MintNFTButton } from '@/components/homebuyer/MintNFTButton';
+import { AirbnbPotentialPanel } from '@/components/investor/AirbnbPotentialPanel';
 import { useAuth } from '@/contexts/AuthContext';
 import { getUserProfile } from '@/lib/userProfile';
 
@@ -617,35 +618,83 @@ export default function PropertyDetailsPage() {
                 {/* Check if this is investor analysis (has different structure) */}
                 {('monthlyCashFlow' in aiInsights) ? (
                   // Investor Analysis Display
-                  <div className="bg-gradient-to-br from-green-50 to-emerald-50 rounded-xl border-2 border-green-200 p-6">
-                    <h3 className="text-xl font-bold text-neutral-900 mb-4">Investment Analysis by William</h3>
-                    <div className="space-y-4">
-                      <div className="flex justify-between items-center">
-                        <span className="text-neutral-700">Investment Score</span>
-                        <span className="text-2xl font-bold text-green-600">{(aiInsights as any).investmentScore || 0}/100</span>
-                      </div>
-                      <div className="flex justify-between items-center">
-                        <span className="text-neutral-700">Investment Level</span>
-                        <span className="font-semibold text-green-700">{(aiInsights as any).investmentLevel || 'N/A'}</span>
-                      </div>
-                      <div className="flex justify-between items-center">
-                        <span className="text-neutral-700">Monthly Cash Flow</span>
-                        <span className="text-xl font-bold text-green-600">
-                          ${((aiInsights as any).monthlyCashFlow || 0).toLocaleString()}
-                        </span>
-                      </div>
-                      <div className="flex justify-between items-center">
-                        <span className="text-neutral-700">Cash-on-Cash Return</span>
-                        <span className="font-semibold">{((aiInsights as any).cashOnCashReturn || 0).toFixed(2)}%</span>
-                      </div>
-                      <div className="flex justify-between items-center">
-                        <span className="text-neutral-700">Cap Rate</span>
-                        <span className="font-semibold">{((aiInsights as any).capRate || 0).toFixed(2)}%</span>
-                      </div>
-                      <div className="pt-4 border-t border-green-200">
-                        <p className="text-sm text-neutral-700 leading-relaxed">{(aiInsights as any).williamRecommendation || 'Analysis in progress...'}</p>
+                  <div className="space-y-6">
+                    <div className="bg-gradient-to-br from-green-50 to-emerald-50 rounded-xl border-2 border-green-200 p-6">
+                      <h3 className="text-xl font-bold text-neutral-900 mb-4">Investment Analysis by William</h3>
+                      <div className="space-y-4">
+                        <div className="flex justify-between items-center">
+                          <span className="text-neutral-700">Investment Score</span>
+                          <span className="text-2xl font-bold text-green-600">{(aiInsights as any).investmentScore || 0}/100</span>
+                        </div>
+                        <div className="flex justify-between items-center">
+                          <span className="text-neutral-700">Investment Level</span>
+                          <span className="font-semibold text-green-700">{(aiInsights as any).investmentLevel || 'N/A'}</span>
+                        </div>
+                        <div className="flex justify-between items-center">
+                          <span className="text-neutral-700">Monthly Cash Flow</span>
+                          <span className="text-xl font-bold text-green-600">
+                            ${((aiInsights as any).monthlyCashFlow || 0).toLocaleString()}
+                          </span>
+                        </div>
+                        <div className="flex justify-between items-center">
+                          <span className="text-neutral-700">Cash-on-Cash Return</span>
+                          <span className="font-semibold">{((aiInsights as any).cashOnCashReturn || 0).toFixed(2)}%</span>
+                        </div>
+                        <div className="flex justify-between items-center">
+                          <span className="text-neutral-700">Cap Rate</span>
+                          <span className="font-semibold">{((aiInsights as any).capRate || 0).toFixed(2)}%</span>
+                        </div>
+                        <div className="flex justify-between items-center">
+                          <span className="text-neutral-700">DSCR</span>
+                          <span className="font-semibold">{((aiInsights as any).dscr || 0).toFixed(2)}</span>
+                        </div>
+                        <div className="pt-4 border-t border-green-200">
+                          <p className="text-sm text-neutral-700 leading-relaxed">{(aiInsights as any).williamRecommendation || 'Analysis in progress...'}</p>
+                        </div>
                       </div>
                     </div>
+
+                    {/* Airbnb Potential Analysis */}
+                    {(aiInsights as any).airbnbPotential && (
+                      <AirbnbPotentialPanel 
+                        airbnbData={(aiInsights as any).airbnbPotential}
+                        longTermRentalIncome={(aiInsights as any).monthlyCashFlow}
+                      />
+                    )}
+
+                    {/* Key Insights for Investors */}
+                    {(aiInsights as any).keyInsights && (aiInsights as any).keyInsights.length > 0 && (
+                      <div className="bg-gradient-to-br from-blue-50 to-indigo-50 rounded-xl border-2 border-blue-200 p-6">
+                        <div className="flex items-center gap-2 mb-4">
+                          <Lightbulb className="w-6 h-6 text-blue-600" />
+                          <h3 className="text-xl font-bold text-neutral-900">Key Investment Insights</h3>
+                        </div>
+                        <div className="space-y-2">
+                          {(aiInsights as any).keyInsights.map((insight: string, index: number) => (
+                            <p key={index} className="text-neutral-700 text-sm leading-relaxed">
+                              {insight}
+                            </p>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Warnings for Investors */}
+                    {(aiInsights as any).warnings && (aiInsights as any).warnings.length > 0 && (
+                      <div className="bg-orange-50 rounded-xl border-2 border-orange-200 p-6">
+                        <div className="flex items-center gap-2 mb-4">
+                          <AlertTriangle className="w-6 h-6 text-orange-600" />
+                          <h3 className="text-xl font-bold text-neutral-900">Risk Factors</h3>
+                        </div>
+                        <div className="space-y-2">
+                          {(aiInsights as any).warnings.map((warning: string, index: number) => (
+                            <p key={index} className="text-neutral-700 text-sm leading-relaxed">
+                              {warning}
+                            </p>
+                          ))}
+                        </div>
+                      </div>
+                    )}
                   </div>
                 ) : (
                   // Homebuyer Analysis Display (existing code)

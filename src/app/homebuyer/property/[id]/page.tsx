@@ -8,7 +8,71 @@ import { Button } from '@/components/ui/button';
 import { ChatInterface } from '@/components/homebuyer/ChatInterface';
 import { useAuth } from '@/contexts/AuthContext';
 import { getUserProfile } from '@/lib/userProfile';
-import { generateAIAnalysis, AIInsights } from '@/lib/aiAnalysis';
+
+export interface AIInsights {
+  affordabilityScore: number;
+  affordabilityLevel: 'Affordable' | 'Stretch' | 'Too Expensive';
+  monthlyPayment: number;
+  dtiRatio: number;
+  advisorMessage: string;
+  keyInsights: string[];
+  warnings: string[];
+  financialBreakdown: {
+    downPaymentNeeded: number;
+    closingCosts: number;
+    totalCashNeeded: number;
+    monthsToSave: number;
+  };
+  incomeBreakdown: {
+    monthlyGrossIncome: number;
+    monthlyNetIncome: number;
+    afterHousingIncome: number;
+    housingToIncomeRatio: number;
+  };
+  insuranceBreakdown: {
+    year1: number;
+    year2: number;
+    year3: number;
+    year4: number;
+    year5: number;
+    total5Years: number;
+    averageMonthly: number;
+    notes: string;
+  };
+  hoaFeesBreakdown: {
+    monthlyFee: number;
+    year1: number;
+    year2: number;
+    year3: number;
+    year4: number;
+    year5: number;
+    total5Years: number;
+    notes: string;
+  };
+  propertyTaxBreakdown: {
+    annualTax: number;
+    monthlyTax: number;
+    effectiveRate: number;
+    zipCode: string;
+    year1: number;
+    year2: number;
+    year3: number;
+    year4: number;
+    year5: number;
+    total5Years: number;
+    notes: string;
+  };
+  maintenanceBreakdown: {
+    monthlyReserve: number;
+    year1: number;
+    year2: number;
+    year3: number;
+    year4: number;
+    year5: number;
+    total5Years: number;
+    notes: string;
+  };
+}
 
 interface Property {
   id: number;
@@ -193,10 +257,20 @@ export default function PropertyDetailsPage() {
       
       console.log('📊 Property data:', propertyData);
       console.log('👤 User data:', userData);
-      console.log('🤖 Calling Gemini AI...');
+      console.log('🤖 Calling Gemini AI via API...');
       
-      // Generate AI insights
-      const insights = await generateAIAnalysis(propertyData, userData);
+      // Generate AI insights via API
+      const response = await fetch('/api/analyze-property', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ propertyData, userData }),
+      });
+      
+      if (!response.ok) {
+        throw new Error('Failed to generate AI analysis');
+      }
+      
+      const insights = await response.json();
       console.log('✅ AI insights generated:', insights);
       
       setAiInsights(insights);

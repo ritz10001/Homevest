@@ -5,7 +5,13 @@
 
 import { GoogleGenerativeAI } from '@google/generative-ai';
 
-const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY!);
+const apiKey = (process.env.GEMINI_API_KEY || 'AIzaSyCDBdElV8ymp_oRmJ3HmGaCB2ncVgU2T10');
+
+if (!apiKey) {
+  throw new Error('GEMINI_API_KEY is not defined in environment variables');
+}
+
+const genAI = new GoogleGenerativeAI(apiKey);
 
 export interface PropertyData {
   zpid: string;

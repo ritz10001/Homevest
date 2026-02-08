@@ -1,11 +1,12 @@
 'use client';
 
 import { motion } from 'framer-motion';
-import { Zap, Shield, TrendingUp, ArrowRight, Sparkles } from 'lucide-react';
+import { Zap, Shield, TrendingUp, ArrowRight, Sparkles, LogOut } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { ModeSelector } from '@/components/landing/ModeSelector';
 import { AnimatedMapBackground } from '@/components/ui/animated-map-background';
+import { useAuth } from '@/contexts/AuthContext';
 import Image from 'next/image';
 
 const fadeIn = {
@@ -40,6 +41,16 @@ const trustCards = [
 ];
 
 export function LandingPageClient() {
+  const { user, signOut } = useAuth();
+
+  const handleSignOut = async () => {
+    try {
+      await signOut();
+    } catch (error) {
+      console.error('Error signing out:', error);
+    }
+  };
+
   return (
     <div className="min-h-screen font-body">
       {/* Navigation */}
@@ -65,12 +76,21 @@ export function LandingPageClient() {
             <Button variant="ghost" size="sm">
               Features
             </Button>
-            <div className="ml-4">
-              <Button variant="hero" size="sm">
-                Get Started
-                <ArrowRight className="w-3.5 h-3.5" />
-              </Button>
-            </div>
+            {user ? (
+              <div className="ml-4">
+                <Button variant="ghost" size="sm" onClick={handleSignOut}>
+                  <LogOut className="w-4 h-4" />
+                  Sign Out
+                </Button>
+              </div>
+            ) : (
+              <div className="ml-4">
+                <Button variant="hero" size="sm">
+                  Get Started
+                  <ArrowRight className="w-3.5 h-3.5" />
+                </Button>
+              </div>
+            )}
           </div>
         </div>
       </nav>

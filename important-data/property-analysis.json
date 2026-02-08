@@ -1,0 +1,114 @@
+{
+  "userData": {
+    "uid": "JLh4SmwnfKSkOc9mpEFZmylgZNh2",
+    "displayName": "Ritvik Prakash",
+    "email": "ritvik11prakash@gmail.com",
+    "annualIncome": 100000,
+    "monthlyDebt": 1000,
+    "availableSavings": 50000,
+    "maxMonthlyBudget": 2000,
+    "downPayment": 2000,
+    "interestRate": 7,
+    "loanTerm": 30,
+    "includePMI": true,
+    "creditScore": "good",
+    "riskComfort": "balanced",
+    "timeHorizon": "10+"
+  },
+  "propertyData": {
+    "zpid": "160934721",
+    "address": "12235 Greencanyon Dr, Houston, TX 77044",
+    "addressCity": "Houston",
+    "addressState": "TX",
+    "addressZipcode": "77044",
+    "price": 285000,
+    "bedrooms": 4,
+    "bathrooms": 4,
+    "sqft": 2638,
+    "lat": 29.894386,
+    "lng": -95.21654,
+    "homeType": "SINGLE_FAMILY",
+    "daysOnZillow": 76,
+    "zestimate": 275900,
+    "taxAssessedValue": 409661,
+    "lotAreaValue": 6181.164,
+    "lotAreaUnit": "sqft",
+    "brokerName": "Circa Real Estate LLC"
+  },
+  "aiInsights": {
+    "affordabilityScore": 30,
+    "affordabilityLevel": "Too Expensive",
+    "monthlyPayment": 2672.62,
+    "dtiRatio": 44.07,
+    "advisorMessage": "Hi Ritvik, after reviewing the details, this property at 12235 Greencanyon Dr is Too Expensive based on your current financial profile and maximum budget. The estimated monthly housing payment significantly exceeds your $2,000 budget, and your debt-to-income ratio is also higher than recommended. I strongly advise revisiting your budget or exploring properties at a lower price point to ensure long-term financial comfort and stability.",
+    "keyInsights": [
+      "High Housing Costs vs. Budget: Your estimated monthly housing payment of $2,672.62 significantly exceeds your maximum monthly budget of $2,000. This is the primary concern. ⚠️",
+      "High DTI Ratio: Your total debt-to-income ratio is 44.07%, which is above the generally accepted healthy limit of 43%. This could make loan approval challenging or lead to unfavorable terms. ⚡",
+      "Low Down Payment Impact: The preferred $2,000 down payment (less than 1% of the purchase price) results in a larger loan, higher monthly P&I, and triggers mandatory Private Mortgage Insurance (PMI), adding $117.92 to your monthly costs. 💰",
+      "Market Value Discrepancy: The listed price ($285,000) is slightly above the Zestimate ($275,900) but significantly below the Tax Assessed Value ($409,661). This discrepancy warrants further investigation into the property's true market value and recent sales in the area. 🏡",
+      "Ample Savings for Closing: You have sufficient available savings ($50,000) to cover the total cash needed at closing ($9,125), which is a positive aspect. ✅"
+    ],
+    "warnings": [
+      "Budget Overrun: The property is $672.62 per month over your stated maximum budget, making it financially unsustainable based on your current comfort level. ⚠️",
+      "Elevated DTI: Your DTI of 44.07% is at the higher end, indicating that a significant portion of your income would go towards debt, potentially limiting financial flexibility. ⚡",
+      "High Loan-to-Value (LTV): A down payment of less than 1% means a very high LTV, which generally comes with higher risk for lenders and the buyer.",
+      "Potential for Property Tax Adjustments: The significant difference between the listed price and the tax-assessed value could mean your property taxes might be re-evaluated closer to the purchase price in the future, potentially increasing your monthly costs."
+    ],
+    "financialBreakdown": {
+      "downPaymentNeeded": 2000,
+      "closingCosts": 7125,
+      "totalCashNeeded": 9125,
+      "monthsToSave": 0
+    },
+    "incomeBreakdown": {
+      "monthlyGrossIncome": 8333.33,
+      "monthlyNetIncome": 6250,
+      "afterHousingIncome": 3577.38,
+      "housingToIncomeRatio": 32.07
+    },
+    "insuranceBreakdown": {
+      "year1": 1800,
+      "year2": 1872,
+      "year3": 1946.88,
+      "year4": 2024.76,
+      "year5": 2105.75,
+      "total5Years": 9749.39,
+      "averageMonthly": 162.49,
+      "notes": "Estimated homeowners insurance for Houston, TX. Factors like location (e.g., flood zones), home age, and specific coverage choices can significantly impact rates. Projected with 4% annual increases."
+    },
+    "hoaFeesBreakdown": {
+      "monthlyFee": 0,
+      "year1": 0,
+      "year2": 0,
+      "year3": 0,
+      "year4": 0,
+      "year5": 0,
+      "total5Years": 0,
+      "notes": "No HOA fees reported for this property, which means no additional monthly cost for community amenities or exterior maintenance."
+    },
+    "propertyTaxBreakdown": {
+      "annualTax": 6270,
+      "monthlyTax": 522.5,
+      "effectiveRate": 2.2,
+      "zipCode": "77044",
+      "year1": 6270,
+      "year2": 6426.75,
+      "year3": 6587.92,
+      "year4": 6753.62,
+      "year5": 6923.96,
+      "total5Years": 32962.25,
+      "notes": "Property tax rates in Houston (77044) are relatively high compared to national averages and can vary by specific taxing entities. The tax assessed value of $409,661 is significantly higher than the listed price, which could indicate a discrepancy or potential for future reassessment. Projected with 2.5% annual increases."
+    },
+    "maintenanceBreakdown": {
+      "monthlyReserve": 356.25,
+      "year1": 4275,
+      "year2": 4424.63,
+      "year3": 4579.52,
+      "year4": 4739.8,
+      "year5": 4905.69,
+      "total5Years": 22924.64,
+      "notes": "This estimate covers typical costs for routine maintenance (HVAC, landscaping, minor repairs) and setting aside funds for larger future expenses (e.g., roof, appliances). Based on 1.5% of home value, projected with 3.5% annual increases."
+    }
+  },
+  "timestamp": "2026-02-08T07:55:06.175Z"
+}

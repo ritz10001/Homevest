@@ -1108,7 +1108,7 @@ export default function PropertyDetailsPage() {
                 onClick={() => setShowChat(true)}
               >
                 <MessageCircle className="w-5 h-5 mr-2" />
-                Contact HomePilot
+                Contact Sarah
               </Button>
             </div>
           </div>
@@ -1132,9 +1132,9 @@ export default function PropertyDetailsPage() {
               animate={{ x: 0 }}
               exit={{ x: '100%' }}
               transition={{ type: 'spring', damping: 30, stiffness: 300 }}
-              className="fixed top-0 right-0 h-full w-[450px] bg-white shadow-2xl z-50"
+              className="fixed top-0 right-0 h-screen w-[450px] bg-white shadow-2xl z-50 flex flex-col"
             >
-              <div className="flex items-center justify-between p-4 border-b border-neutral-200">
+              <div className="flex items-center justify-between p-4 border-b border-neutral-200 shrink-0">
                 <h3 className="text-lg font-semibold">Chat with HomePilot</h3>
                 <button
                   onClick={() => setShowChat(false)}
@@ -1143,7 +1143,9 @@ export default function PropertyDetailsPage() {
                   <X className="w-5 h-5" />
                 </button>
               </div>
-              <ChatInterface />
+              <div className="flex-1 overflow-hidden">
+                <ChatInterface />
+              </div>
             </motion.div>
           </>
         )}

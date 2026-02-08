@@ -12,6 +12,9 @@ interface Property {
   sqft: number;
   lat: number;
   lng: number;
+  zpid?: string;
+  imgSrc?: string;
+  carouselPhotos?: Array<{ url: string }>;
 }
 
 interface AnalysisResult {
@@ -117,21 +120,16 @@ export function AnalysisPanel({ property, analysis, isAnalyzing }: AnalysisPanel
       animate={{ opacity: 1, y: 0 }}
       className="h-full overflow-y-auto"
     >
-      {/* Property Images */}
-      <div className="relative h-64 bg-gradient-to-br from-neutral-200 to-neutral-300">
-        <div className="absolute inset-0 flex items-center justify-center">
-          <Home className="w-16 h-16 text-neutral-400" />
-        </div>
-        <div className="absolute top-4 right-4">
-          <div className={`flex items-center gap-2 px-3 py-1.5 rounded-full border ${getAffordabilityColor()} backdrop-blur-sm`}>
-            {getAffordabilityIcon()}
-            <span className="text-sm font-semibold">{analysis.affordabilityLevel}</span>
-          </div>
+      {/* Affordability Badge Header */}
+      <div className="sticky top-0 z-10 bg-white border-b border-neutral-200 p-4">
+        <div className={`flex items-center justify-center gap-2 px-4 py-2 rounded-full border ${getAffordabilityColor()}`}>
+          {getAffordabilityIcon()}
+          <span className="text-sm font-semibold">{analysis.affordabilityLevel}</span>
         </div>
       </div>
 
       {/* Property Details */}
-      <div className="p-6 space-y-6">
+      <div className="p-6 space-y-6 pt-8">
         {/* Property Header */}
         <div>
           <h3 className="text-3xl font-bold text-neutral-900 mb-2">

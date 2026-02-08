@@ -14,6 +14,8 @@ interface Property {
   sqft: number;
   lat: number;
   lng: number;
+  zpid?: string;
+  imgSrc?: string;
 }
 
 interface PropertyMapProps {
@@ -37,11 +39,11 @@ const createPriceIcon = (price: number, isSelected: boolean) => {
   });
 };
 
-function MapUpdater({ center }: { center: [number, number] }) {
+function MapUpdater({ center, zoom }: { center: [number, number]; zoom?: number }) {
   const map = useMap();
   useEffect(() => {
-    map.setView(center, 12);
-  }, [center, map]);
+    map.setView(center, zoom || 11);
+  }, [center, zoom, map]);
   return null;
 }
 
@@ -60,9 +62,12 @@ export function PropertyMap({ properties, onPropertySelect, selectedProperty }: 
     );
   }
 
+  // Center on Houston, TX (average of property coordinates)
   const center: [number, number] = selectedProperty
     ? [selectedProperty.lat, selectedProperty.lng]
-    : [30.2672, -97.7431]; // Austin, TX
+    : [29.9, -95.18]; // Houston, TX
+  
+  const zoom = selectedProperty ? 14 : 11; // Zoom in on selected property, otherwise show all Houston
 
   return (
     <>
@@ -109,7 +114,7 @@ export function PropertyMap({ properties, onPropertySelect, selectedProperty }: 
       
       <MapContainer
         center={center}
-        zoom={12}
+        zoom={zoom}
         style={{ height: '100%', width: '100%', borderRadius: '16px' }}
         zoomControl={true}
       >
@@ -117,7 +122,7 @@ export function PropertyMap({ properties, onPropertySelect, selectedProperty }: 
           attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
           url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
         />
-        <MapUpdater center={center} />
+        <MapUpdater center={center} zoom={zoom} />
         {properties.map((property) => (
           <Marker
             key={property.id}

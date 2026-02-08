@@ -1,0 +1,3 @@
+# This file ensures the Important Data folder is tracked by git
+# The folder stores temporary property analysis data (JSON files)
+# JSON files are automatically deleted when navigating back to the map

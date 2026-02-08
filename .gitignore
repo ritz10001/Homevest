@@ -39,3 +39,7 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# Important Data folder (temporary property analysis data)
+Important Data/*.json
+Important Data/property-analysis.json

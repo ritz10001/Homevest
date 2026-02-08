@@ -1,0 +1,52 @@
+[
+  {
+    "id": 1,
+    "address": "123 Oak Street, Austin, TX 78701",
+    "price": 450000,
+    "bedrooms": 3,
+    "bathrooms": 2,
+    "sqft": 1800,
+    "lat": 30.2672,
+    "lng": -97.7431
+  },
+  {
+    "id": 2,
+    "address": "456 Elm Avenue, Austin, TX 78702",
+    "price": 525000,
+    "bedrooms": 4,
+    "bathrooms": 2.5,
+    "sqft": 2200,
+    "lat": 30.2640,
+    "lng": -97.7236
+  },
+  {
+    "id": 3,
+    "address": "789 Pine Road, Austin, TX 78703",
+    "price": 675000,
+    "bedrooms": 4,
+    "bathrooms": 3,
+    "sqft": 2800,
+    "lat": 30.2849,
+    "lng": -97.7516
+  },
+  {
+    "id": 4,
+    "address": "321 Maple Drive, Austin, TX 78704",
+    "price": 395000,
+    "bedrooms": 2,
+    "bathrooms": 2,
+    "sqft": 1500,
+    "lat": 30.2500,
+    "lng": -97.7543
+  },
+  {
+    "id": 5,
+    "address": "654 Cedar Lane, Austin, TX 78705",
+    "price": 580000,
+    "bedrooms": 3,
+    "bathrooms": 2.5,
+    "sqft": 2100,
+    "lat": 30.2950,
+    "lng": -97.7404
+  }
+]
